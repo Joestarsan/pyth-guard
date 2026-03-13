@@ -1,21 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
 
+import { apiMarketProvider } from "@/lib/market-data/api-provider";
 import { EvidenceCard } from "@/components/evidence-card";
 import { TimelineStrip } from "@/components/timeline-strip";
 import { TrustDial } from "@/components/trust-dial";
 import { ModeNav } from "@/components/mode-nav";
-import { mockScenarioProvider } from "@/lib/market-data/mock-provider";
 import { useMarketStream } from "@/hooks/use-market-stream";
 
 const quickActions = ["Long", "Short", "Swap", "Exit"];
 
 export function GuardDashboard() {
-  const { frameIndex, state } = useMarketStream({
+  const { frameIndex, state, source, notice } = useMarketStream({
     asset: "BTC / USD",
-    provider: mockScenarioProvider,
+    provider: apiMarketProvider,
   });
 
   if (state === null) {
@@ -35,7 +34,10 @@ export function GuardDashboard() {
         <div className="heroMeta">
           <span className="assetBadge">{state.asset}</span>
           <span className="assetBadge subtle">Session: {state.marketSession}</span>
-          <span className="assetBadge subtle">Scenario frame: {frameIndex + 1}</span>
+          <span className={`assetBadge subtle source${source}`}>
+            Source: {source === "pyth-pro" ? "Pyth Pro" : "Mock Fallback"}
+          </span>
+          <span className="assetBadge subtle">Frame: {frameIndex + 1}</span>
         </div>
       </header>
 
@@ -79,6 +81,8 @@ export function GuardDashboard() {
             ) : (
               <div className="flagBadge calm">Clean Conditions</div>
             )}
+
+            {notice ? <p className="panelNotice">{notice}</p> : null}
           </div>
         </aside>
 

@@ -8,6 +8,8 @@ export type SubscriptionParams = {
 export type MarketUpdate = {
   frameIndex: number;
   input: MarketInput;
+  source: "pyth-pro" | "mock";
+  notice?: string;
 };
 
 export type Unsubscribe = () => void;

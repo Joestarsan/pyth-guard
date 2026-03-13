@@ -4,7 +4,7 @@ import { mockScenarioFrames } from "@/lib/mock-market-state";
 export class MockScenarioProvider implements MarketDataProvider {
   subscribe(
     params: SubscriptionParams,
-    onUpdate: (update: { frameIndex: number; input: (typeof mockScenarioFrames)[number] }) => void,
+    onUpdate: Parameters<MarketDataProvider["subscribe"]>[1],
   ) {
     const frames = params.asset
       ? mockScenarioFrames.filter((frame) => frame.asset === params.asset)
@@ -13,11 +13,21 @@ export class MockScenarioProvider implements MarketDataProvider {
     const intervalMs = params.intervalMs ?? 1800;
     let frameIndex = 0;
 
-    onUpdate({ frameIndex, input: frames[frameIndex] });
+    onUpdate({
+      frameIndex,
+      input: frames[frameIndex],
+      source: "mock",
+      notice: "Using local scenario provider.",
+    });
 
     const interval = window.setInterval(() => {
       frameIndex = (frameIndex + 1) % frames.length;
-      onUpdate({ frameIndex, input: frames[frameIndex] });
+      onUpdate({
+        frameIndex,
+        input: frames[frameIndex],
+        source: "mock",
+        notice: "Using local scenario provider.",
+      });
     }, intervalMs);
 
     return () => window.clearInterval(interval);

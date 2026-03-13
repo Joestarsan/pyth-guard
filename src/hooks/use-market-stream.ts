@@ -21,12 +21,16 @@ export function useMarketStream({
 }: UseMarketStreamOptions) {
   const [frameIndex, setFrameIndex] = useState(0);
   const [state, setState] = useState<MarketState | null>(null);
+  const [source, setSource] = useState<"pyth-pro" | "mock">("mock");
+  const [notice, setNotice] = useState<string | undefined>();
 
   useEffect(() => {
     const unsubscribe = provider.subscribe(
       { asset, intervalMs },
-      ({ frameIndex: nextFrameIndex, input }) => {
+      ({ frameIndex: nextFrameIndex, input, source: nextSource, notice: nextNotice }) => {
         setFrameIndex(nextFrameIndex);
+        setSource(nextSource);
+        setNotice(nextNotice);
         setState((current) => {
           const nextTimeline =
             current === null
@@ -41,5 +45,5 @@ export function useMarketStream({
     return unsubscribe;
   }, [asset, intervalMs, provider, seedTimeline]);
 
-  return { frameIndex, state };
+  return { frameIndex, state, source, notice };
 }
