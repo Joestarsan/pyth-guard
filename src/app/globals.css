@@ -299,6 +299,28 @@ textarea {
   font-weight: 700;
 }
 
+.assetSwitch {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.assetSwitchButton {
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+}
+
+.assetSwitchButton.active {
+  border-color: rgba(34, 211, 238, 0.35);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.26), rgba(34, 211, 238, 0.12));
+}
+
 .actionGrid {
   flex-wrap: wrap;
 }
@@ -605,6 +627,7 @@ textarea {
 .witnessEvidencePanel,
 .verdictPanel,
 .witnessScorePanel,
+.reasoningPanel,
 .transcriptPanel,
 .witnessTimelinePanel {
   border: 1px solid var(--border);
@@ -637,6 +660,7 @@ textarea {
 
 .verdictPanel,
 .witnessScorePanel,
+.reasoningPanel,
 .transcriptPanel,
 .witnessTimelinePanel {
   padding: 18px;
@@ -704,6 +728,20 @@ textarea {
   display: grid;
   gap: 12px;
   margin-top: 16px;
+}
+
+.reasoningList {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.reasoningItem {
+  padding: 14px 16px;
+  border: 1px solid rgba(34, 211, 238, 0.14);
+  border-radius: 16px;
+  background: rgba(34, 211, 238, 0.05);
+  line-height: 1.6;
 }
 
 .transcriptLine {

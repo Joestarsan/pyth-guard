@@ -72,6 +72,21 @@ export function WitnessBoard() {
             </div>
           </div>
 
+          <div className="reasoningPanel">
+            <div className="panelHeader">
+              <span className="panelEyebrow">Reasoning Stack</span>
+              <strong>Why the verdict landed this way</strong>
+            </div>
+
+            <div className="reasoningList">
+              {selectedCase.evidenceSummary.map((item) => (
+                <div key={item} className="reasoningItem">
+                  {item}
+                </div>
+              ))}
+            </div>
+          </div>
+
           <div className="transcriptPanel">
             <div className="panelHeader">
               <span className="panelEyebrow">Transcript</span>

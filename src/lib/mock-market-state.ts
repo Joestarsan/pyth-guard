@@ -44,6 +44,9 @@ export type MarketState = {
   timeline: number[];
 };
 
+export const supportedAssets = ["BTC / USD", "ETH / USD", "SPY / USD"] as const;
+export type SupportedAsset = (typeof supportedAssets)[number];
+
 export const mockScenarioFrames: MarketInput[] = [
   {
     asset: "BTC / USD",

@@ -17,6 +17,7 @@ export type WitnessCase = {
   timeline: number[];
   verdict: string;
   recommendedAction: string;
+  evidenceSummary: string[];
   lines: WitnessLine[];
 };
 
@@ -44,6 +45,11 @@ export const witnessCases: WitnessCase[] = [
     timeline: [84, 82, 79, 76, 71, 63, 56, 49, 44, 41],
     verdict: "Reckless Entry",
     recommendedAction: "Wait or reduce size with a limit order.",
+    evidenceSummary: [
+      "Confidence widened before the move was complete.",
+      "Spread deterioration made execution quality worse than the chart suggested.",
+      "Publisher participation dropped while the trade looked strongest on price alone.",
+    ],
     lines: [
       {
         role: "Prosecutor",
@@ -73,6 +79,11 @@ export const witnessCases: WitnessCase[] = [
     timeline: [88, 87, 85, 81, 77, 72, 68, 65, 61, 58],
     verdict: "Defensible Decision",
     recommendedAction: "Reduce size and protect execution quality.",
+    evidenceSummary: [
+      "Confidence and spread both worsened before the broader market caught up.",
+      "The trust engine moved from safe toward caution early enough to justify de-risking.",
+      "The exit respected market quality rather than waiting for a more dramatic price confirmation.",
+    ],
     lines: [
       {
         role: "Prosecutor",

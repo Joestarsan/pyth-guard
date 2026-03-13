@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 
 import { apiMarketProvider } from "@/lib/market-data/api-provider";
 import { EvidenceCard } from "@/components/evidence-card";
@@ -8,12 +9,14 @@ import { TimelineStrip } from "@/components/timeline-strip";
 import { TrustDial } from "@/components/trust-dial";
 import { ModeNav } from "@/components/mode-nav";
 import { useMarketStream } from "@/hooks/use-market-stream";
+import { supportedAssets, SupportedAsset } from "@/lib/mock-market-state";
 
 const quickActions = ["Long", "Short", "Swap", "Exit"];
 
 export function GuardDashboard() {
+  const [asset, setAsset] = useState<SupportedAsset>("BTC / USD");
   const { frameIndex, state, source, notice } = useMarketStream({
-    asset: "BTC / USD",
+    asset,
     provider: apiMarketProvider,
   });
 
@@ -50,7 +53,18 @@ export function GuardDashboard() {
 
           <label className="field">
             <span>Asset</span>
-            <div className="fieldValue">{state.asset}</div>
+            <div className="assetSwitch">
+              {supportedAssets.map((candidate) => (
+                <button
+                  key={candidate}
+                  type="button"
+                  className={`assetSwitchButton${candidate === asset ? " active" : ""}`}
+                  onClick={() => setAsset(candidate)}
+                >
+                  {candidate}
+                </button>
+              ))}
+            </div>
           </label>
 
           <label className="field">
