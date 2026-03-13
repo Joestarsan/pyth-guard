@@ -1,41 +1,31 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { EvidenceCard } from "@/components/evidence-card";
 import { TimelineStrip } from "@/components/timeline-strip";
 import { TrustDial } from "@/components/trust-dial";
-import { MarketState, mockScenarioFrames } from "@/lib/mock-market-state";
-import { computeMarketState } from "@/lib/trust-engine";
+import { ModeNav } from "@/components/mode-nav";
+import { mockScenarioProvider } from "@/lib/market-data/mock-provider";
+import { useMarketStream } from "@/hooks/use-market-stream";
 
 const quickActions = ["Long", "Short", "Swap", "Exit"];
 
-function buildInitialState() {
-  const initialFrame = mockScenarioFrames[0];
-  return computeMarketState(initialFrame, [86, 84, 83, 82, 84, 86]);
-}
-
 export function GuardDashboard() {
-  const [frameIndex, setFrameIndex] = useState(0);
-  const [state, setState] = useState<MarketState>(buildInitialState);
+  const { frameIndex, state } = useMarketStream({
+    asset: "BTC / USD",
+    provider: mockScenarioProvider,
+  });
 
-  useEffect(() => {
-    const interval = window.setInterval(() => {
-      setFrameIndex((previous) => {
-        const nextIndex = (previous + 1) % mockScenarioFrames.length;
-        setState((current) => {
-          const timeline = [...current.timeline, current.trustScore].slice(-12);
-          return computeMarketState(mockScenarioFrames[nextIndex], timeline);
-        });
-        return nextIndex;
-      });
-    }, 1800);
-
-    return () => window.clearInterval(interval);
-  }, []);
+  if (state === null) {
+    return null;
+  }
 
   return (
-    <section className="heroFrame">
+    <>
+      <ModeNav current="guard" />
+      <section className="heroFrame">
       <header className="heroHeader">
         <div>
           <span className="topKicker">Pyth Guard</span>
@@ -126,9 +116,15 @@ export function GuardDashboard() {
             The same trust engine will replay bad trades as courtroom evidence.
             For the demo build, this panel becomes the forensic confrontation layer.
           </p>
-          <div className="witnessStamp">OBJECTION READY</div>
+          <div className="witnessPanelFooter">
+            <div className="witnessStamp">OBJECTION READY</div>
+            <Link href="/witness" className="modeLaunchLink">
+              Enter Trial Mode
+            </Link>
+          </div>
         </article>
       </section>
-    </section>
+      </section>
+    </>
   );
 }

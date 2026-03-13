@@ -52,6 +52,35 @@ textarea {
   padding: 32px;
 }
 
+.modeNav {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  gap: 10px;
+  margin: 0 auto 18px;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  background: rgba(12, 8, 21, 0.82);
+  backdrop-filter: blur(18px);
+}
+
+.modeLink {
+  padding: 12px 18px;
+  border-radius: 999px;
+  color: var(--muted);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.modeLink.active {
+  color: var(--text);
+  background: linear-gradient(135deg, var(--pyth-violet), var(--signal-magenta));
+}
+
 .pageGlow {
   pointer-events: none;
   position: absolute;
@@ -455,6 +484,13 @@ textarea {
   line-height: 1.65;
 }
 
+.witnessPanelFooter {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
 .witnessStamp {
   justify-self: start;
   padding: 12px 18px;
@@ -462,6 +498,20 @@ textarea {
   background: rgba(245, 158, 11, 0.12);
   color: var(--evidence-gold);
   font-weight: 700;
+}
+
+.witnessStamp.objection {
+  background: rgba(251, 113, 133, 0.12);
+  color: var(--danger-coral);
+}
+
+.modeLaunchLink {
+  color: var(--text);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  text-transform: uppercase;
 }
 
 .timelineStrip {
@@ -491,6 +541,198 @@ textarea {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
+.witnessShell {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 24px;
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 28px;
+  border: 1px solid var(--border);
+  border-radius: 32px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.015)),
+    rgba(7, 5, 14, 0.8);
+  box-shadow: var(--shadow-strong);
+  backdrop-filter: blur(24px);
+}
+
+.witnessHero {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.witnessHero h1 {
+  margin: 8px 0 0;
+  font-size: clamp(2.4rem, 5vw, 4.8rem);
+  line-height: 0.94;
+  letter-spacing: -0.06em;
+}
+
+.witnessHeroCopy {
+  max-width: 44ch;
+  margin: 16px 0 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.witnessLayout {
+  display: grid;
+  grid-template-columns: minmax(240px, 290px) minmax(0, 1fr) minmax(260px, 330px);
+  gap: 20px;
+}
+
+.caseRail,
+.witnessStage,
+.witnessEvidencePanel,
+.verdictPanel,
+.witnessScorePanel,
+.transcriptPanel,
+.witnessTimelinePanel {
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.015)),
+    var(--surface);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.caseRail,
+.witnessEvidencePanel {
+  display: grid;
+  gap: 18px;
+  align-self: start;
+  padding: 22px;
+}
+
+.witnessStage {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+}
+
+.witnessStageTop {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1.1fr) minmax(220px, 0.9fr);
+}
+
+.verdictPanel,
+.witnessScorePanel,
+.transcriptPanel,
+.witnessTimelinePanel {
+  padding: 18px;
+}
+
+.caseList {
+  display: grid;
+  gap: 12px;
+}
+
+.caseCard {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  text-align: left;
+}
+
+.caseCard.active {
+  border-color: rgba(217, 70, 239, 0.34);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.22), rgba(217, 70, 239, 0.08));
+}
+
+.caseTitle {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.caseSubtitle {
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.verdictWord {
+  display: block;
+  margin-top: 12px;
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  letter-spacing: -0.05em;
+  line-height: 0.92;
+}
+
+.verdictCopy {
+  margin: 14px 0 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.witnessScorePanel {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+  justify-items: start;
+}
+
+.witnessScore {
+  font-size: clamp(3rem, 7vw, 5rem);
+  letter-spacing: -0.08em;
+  line-height: 0.9;
+}
+
+.transcriptList {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.transcriptLine {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.transcriptLine.roleProsecutor {
+  border: 1px solid rgba(251, 113, 133, 0.2);
+}
+
+.transcriptLine.roleDefense {
+  border: 1px solid rgba(52, 211, 153, 0.18);
+}
+
+.transcriptLine.roleJudge {
+  border: 1px solid rgba(245, 158, 11, 0.18);
+}
+
+.transcriptLine.roleGuard {
+  border: 1px solid rgba(34, 211, 238, 0.18);
+}
+
+.transcriptRole {
+  font-family: var(--font-mono), monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.transcriptLine p {
+  margin: 0;
+  line-height: 1.65;
+}
+
+.witnessTimelinePanel .timelineStrip {
+  min-height: 220px;
+  margin-top: 10px;
+}
+
 @keyframes pulseAura {
   0%,
   100% {
@@ -505,8 +747,15 @@ textarea {
 
 @media (max-width: 1180px) {
   .mainGrid,
-  .lowerGrid {
+  .lowerGrid,
+  .witnessLayout,
+  .witnessStageTop {
     flex-direction: column;
+  }
+
+  .witnessLayout,
+  .witnessStageTop {
+    display: flex;
   }
 
   .intentPanel,
@@ -529,7 +778,8 @@ textarea {
     border-radius: 24px;
   }
 
-  .heroHeader {
+  .heroHeader,
+  .witnessHero {
     gap: 20px;
     flex-direction: column;
   }
