@@ -287,6 +287,10 @@ textarea {
   color: var(--danger-coral);
 }
 
+.flagBadge.calm {
+  color: var(--verdict-mint);
+}
+
 .dialAura {
   position: absolute;
   inset: 15% 20%;
