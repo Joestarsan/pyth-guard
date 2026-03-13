@@ -10,8 +10,6 @@ build/
 .env.*.local
 coverage/
 *.log
-pnpm-lock.yaml
-package-lock.json
-yarn.lock
+tsconfig.tsbuildinfo
 tmp/
 temp/

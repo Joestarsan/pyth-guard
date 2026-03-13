@@ -12,6 +12,11 @@ Early build stage.
 
 This public repository will contain only the product itself and public-facing project materials.
 
+Current milestone:
+- first live `Pyth Guard` screen scaffolded in Next.js
+- creative visual direction established
+- mock trust state wired into the initial UI
+
 ## Why This Exists
 
 Most trading tools focus on price direction.
@@ -33,6 +38,13 @@ Pyth provides richer market structure signals:
   - `Publisher Drop`
 - concrete execution guidance
 - one polished courtroom replay powered by the same trust engine
+
+## Local Development
+
+```bash
+npm install
+npm run dev
+```
 
 ## Pyth Inputs
 

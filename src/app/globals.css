@@ -1,0 +1,540 @@
+:root {
+  --font-heading: "Space Grotesk", "Trebuchet MS", sans-serif;
+  --font-mono: "IBM Plex Mono", "SFMono-Regular", "SF Mono", monospace;
+  --void: #090611;
+  --surface: rgba(16, 11, 28, 0.8);
+  --surface-strong: rgba(22, 15, 37, 0.94);
+  --surface-soft: rgba(255, 255, 255, 0.04);
+  --border: rgba(180, 134, 255, 0.22);
+  --text: #f5f3ff;
+  --muted: rgba(245, 243, 255, 0.68);
+  --pyth-violet: #8b5cf6;
+  --electric-purple: #a855f7;
+  --signal-magenta: #d946ef;
+  --witness-cyan: #22d3ee;
+  --evidence-gold: #f59e0b;
+  --danger-coral: #fb7185;
+  --verdict-mint: #34d399;
+  --shadow-strong: 0 30px 90px rgba(0, 0, 0, 0.45);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--void);
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 20% 10%, rgba(139, 92, 246, 0.24), transparent 24%),
+    radial-gradient(circle at 80% 15%, rgba(217, 70, 239, 0.18), transparent 18%),
+    radial-gradient(circle at 50% 100%, rgba(34, 211, 238, 0.12), transparent 25%),
+    linear-gradient(180deg, #080510 0%, #0a0614 40%, #05030a 100%);
+  color: var(--text);
+  font-family: var(--font-heading), sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.pageShell {
+  position: relative;
+  overflow: hidden;
+  min-height: 100vh;
+  padding: 32px;
+}
+
+.pageGlow {
+  pointer-events: none;
+  position: absolute;
+  filter: blur(90px);
+  opacity: 0.7;
+}
+
+.pageGlowTop {
+  top: -140px;
+  left: 8%;
+  width: 460px;
+  height: 460px;
+  background: rgba(139, 92, 246, 0.22);
+}
+
+.pageGlowBottom {
+  right: -80px;
+  bottom: -120px;
+  width: 420px;
+  height: 420px;
+  background: rgba(34, 211, 238, 0.14);
+}
+
+.heroFrame {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 24px;
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 28px;
+  border: 1px solid var(--border);
+  border-radius: 32px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.015)),
+    rgba(7, 5, 14, 0.8);
+  box-shadow: var(--shadow-strong);
+  backdrop-filter: blur(24px);
+}
+
+.heroHeader,
+.panelHeader,
+.evidenceHeader,
+.heroMeta,
+.field,
+.timelineStrip,
+.mainGrid,
+.lowerGrid,
+.actionGrid {
+  display: flex;
+}
+
+.heroHeader,
+.panelHeader,
+.evidenceHeader,
+.heroMeta,
+.field,
+.mainGrid,
+.lowerGrid,
+.actionGrid {
+  gap: 16px;
+}
+
+.heroHeader,
+.panelHeader,
+.evidenceHeader,
+.heroMeta,
+.field,
+.mainGrid,
+.lowerGrid {
+  justify-content: space-between;
+}
+
+.heroHeader,
+.panelHeader,
+.evidenceHeader,
+.field,
+.mainGrid,
+.lowerGrid {
+  align-items: center;
+}
+
+.heroHeader {
+  align-items: flex-start;
+}
+
+.heroHeader h1 {
+  max-width: 760px;
+  margin: 6px 0 0;
+  font-size: clamp(2.4rem, 6vw, 5.2rem);
+  line-height: 0.92;
+  letter-spacing: -0.06em;
+}
+
+.topKicker,
+.panelEyebrow,
+.dialEyebrow,
+.timelineValue,
+.evidenceDelta,
+.field span {
+  font-family: var(--font-mono), monospace;
+}
+
+.topKicker,
+.panelEyebrow,
+.dialEyebrow {
+  color: var(--witness-cyan);
+  font-size: 0.76rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.heroMeta {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.assetBadge,
+.flagBadge,
+.actionChip,
+.riskBadge,
+.witnessStamp {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.assetBadge,
+.flagBadge {
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.78rem;
+}
+
+.assetBadge.subtle {
+  color: var(--muted);
+}
+
+.mainGrid {
+  align-items: stretch;
+  gap: 20px;
+}
+
+.intentPanel,
+.evidencePanel,
+.timelinePanel,
+.witnessPanel,
+.trustDial {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.015)),
+    var(--surface);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.intentPanel,
+.evidencePanel {
+  width: min(100%, 320px);
+}
+
+.intentPanel,
+.evidencePanel,
+.timelinePanel,
+.witnessPanel {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+  border-radius: 24px;
+}
+
+.trustDial {
+  isolation: isolate;
+  flex: 1;
+  min-height: 600px;
+  padding: 28px;
+  border-radius: 28px;
+}
+
+.panelHeader {
+  align-items: baseline;
+}
+
+.panelHeader strong {
+  font-size: 1.1rem;
+}
+
+.field {
+  align-items: flex-start;
+  flex-direction: column;
+  padding: 14px;
+  border-radius: 18px;
+  background: var(--surface-soft);
+}
+
+.field span {
+  color: var(--muted);
+  font-size: 0.74rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.fieldValue {
+  font-size: 1.08rem;
+  font-weight: 700;
+}
+
+.actionGrid {
+  flex-wrap: wrap;
+}
+
+.actionChip {
+  padding: 12px 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+}
+
+.actionChip.active {
+  background: linear-gradient(135deg, var(--pyth-violet), var(--signal-magenta));
+  border-color: transparent;
+}
+
+.flagStack {
+  display: grid;
+  gap: 10px;
+}
+
+.flagBadge {
+  color: var(--danger-coral);
+}
+
+.dialAura {
+  position: absolute;
+  inset: 15% 20%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, rgba(139, 92, 246, 0.22), transparent 55%),
+    radial-gradient(circle at 60% 40%, rgba(34, 211, 238, 0.1), transparent 45%);
+  filter: blur(10px);
+  animation: pulseAura 6s ease-in-out infinite;
+}
+
+.dialSvg {
+  position: absolute;
+  inset: 50%;
+  width: min(560px, 90%);
+  height: auto;
+  transform: translate(-50%, -54%) rotate(-96deg);
+}
+
+.dialTrack,
+.dialValue {
+  fill: none;
+  stroke-width: 12;
+}
+
+.dialTrack {
+  stroke: rgba(255, 255, 255, 0.08);
+}
+
+.dialValue {
+  stroke: url(#trustGradient);
+  stroke: var(--signal-magenta);
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 16px rgba(217, 70, 239, 0.45));
+}
+
+.dialContent {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  max-width: 520px;
+  margin: 92px auto 0;
+  text-align: center;
+}
+
+.dialScore {
+  font-size: clamp(5rem, 14vw, 9rem);
+  line-height: 0.9;
+  letter-spacing: -0.08em;
+}
+
+.riskBadge {
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.8rem;
+}
+
+.riskSafe {
+  color: var(--verdict-mint);
+}
+
+.riskCaution {
+  color: var(--evidence-gold);
+}
+
+.riskUnsafe {
+  color: var(--danger-coral);
+}
+
+.dialRecommendation {
+  margin: 0;
+  padding: 14px 18px;
+  border-radius: 16px;
+  background: rgba(251, 113, 133, 0.14);
+  color: var(--danger-coral);
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.dialNarrative {
+  max-width: 48ch;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.evidenceStack {
+  display: grid;
+  gap: 12px;
+}
+
+.evidenceCard {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.evidenceHeader {
+  align-items: baseline;
+}
+
+.evidenceLabel {
+  font-weight: 700;
+}
+
+.evidenceDelta {
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.evidenceValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.evidenceNote {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.trendsupporting {
+  border: 1px solid rgba(52, 211, 153, 0.16);
+}
+
+.trenddamaging {
+  border: 1px solid rgba(251, 113, 133, 0.18);
+}
+
+.trendneutral {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.lowerGrid {
+  align-items: stretch;
+  gap: 20px;
+}
+
+.timelinePanel {
+  flex: 1.25;
+}
+
+.witnessPanel {
+  flex: 0.9;
+  background:
+    linear-gradient(135deg, rgba(139, 92, 246, 0.22), rgba(217, 70, 239, 0.08)),
+    var(--surface-strong);
+}
+
+.witnessPanel p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.witnessStamp {
+  justify-self: start;
+  padding: 12px 18px;
+  border-radius: 18px;
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--evidence-gold);
+  font-weight: 700;
+}
+
+.timelineStrip {
+  align-items: end;
+  gap: 10px;
+  min-height: 190px;
+}
+
+.timelineBarWrap {
+  display: grid;
+  align-items: end;
+  gap: 10px;
+  flex: 1;
+  height: 100%;
+}
+
+.timelineValue {
+  color: var(--muted);
+  font-size: 0.72rem;
+  text-align: center;
+}
+
+.timelineBar {
+  border-radius: 999px 999px 12px 12px;
+  background:
+    linear-gradient(180deg, var(--witness-cyan) 0%, var(--pyth-violet) 45%, var(--danger-coral) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+@keyframes pulseAura {
+  0%,
+  100% {
+    transform: scale(0.96);
+    opacity: 0.72;
+  }
+  50% {
+    transform: scale(1.04);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 1180px) {
+  .mainGrid,
+  .lowerGrid {
+    flex-direction: column;
+  }
+
+  .intentPanel,
+  .evidencePanel {
+    width: 100%;
+  }
+
+  .trustDial {
+    min-height: 520px;
+  }
+}
+
+@media (max-width: 720px) {
+  .pageShell {
+    padding: 16px;
+  }
+
+  .heroFrame {
+    padding: 18px;
+    border-radius: 24px;
+  }
+
+  .heroHeader {
+    gap: 20px;
+    flex-direction: column;
+  }
+
+  .heroMeta {
+    justify-content: flex-start;
+  }
+
+  .dialContent {
+    margin-top: 80px;
+  }
+}
