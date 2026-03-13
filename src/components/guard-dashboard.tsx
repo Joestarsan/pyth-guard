@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import { apiMarketProvider } from "@/lib/market-data/api-provider";
 import { EvidenceCard } from "@/components/evidence-card";
+import { ExecutionPolicyCard } from "@/components/execution-policy-card";
 import { TimelineStrip } from "@/components/timeline-strip";
 import { TrustDial } from "@/components/trust-dial";
 import { ModeNav } from "@/components/mode-nav";
@@ -117,6 +118,8 @@ export function GuardDashboard() {
       </section>
 
       <section className="lowerGrid">
+        <ExecutionPolicyCard state={state} />
+
         <article className="timelinePanel">
           <div className="panelHeader">
             <span className="panelEyebrow">Market Health Tape</span>

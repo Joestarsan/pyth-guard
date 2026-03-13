@@ -236,6 +236,7 @@ textarea {
 
 .intentPanel,
 .evidencePanel,
+.policyCard,
 .timelinePanel,
 .witnessPanel,
 .trustDial {
@@ -255,6 +256,7 @@ textarea {
 
 .intentPanel,
 .evidencePanel,
+.policyCard,
 .timelinePanel,
 .witnessPanel {
   display: grid;
@@ -508,6 +510,10 @@ textarea {
   flex: 1.25;
 }
 
+.policyCard {
+  flex: 1;
+}
+
 .witnessPanel {
   flex: 0.9;
   background:
@@ -555,6 +561,34 @@ textarea {
   align-items: end;
   gap: 10px;
   min-height: 190px;
+}
+
+.policyGrid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.policyMetric {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.policyMetric span {
+  color: var(--muted);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.policyMetric strong {
+  font-size: 1.12rem;
+  text-transform: capitalize;
 }
 
 .timelineBarWrap {

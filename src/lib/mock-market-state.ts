@@ -40,6 +40,12 @@ export type MarketState = {
   recommendation: Recommendation;
   narrative: string;
   flags: string[];
+  executionPolicy: {
+    marketOrderAllowed: boolean;
+    maxSizeFraction: number;
+    executionMode: "normal" | "limit-preferred" | "limit-only" | "stand-down";
+    cooldownSeconds: number;
+  };
   evidence: EvidenceItem[];
   timeline: number[];
 };

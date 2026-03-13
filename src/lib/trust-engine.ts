@@ -54,6 +54,42 @@ function getRecommendation(score: number, flags: string[]): Recommendation {
   return "Wait";
 }
 
+function buildExecutionPolicy(score: number, flags: string[]) {
+  if (score >= 75) {
+    return {
+      marketOrderAllowed: true,
+      maxSizeFraction: 1,
+      executionMode: "normal" as const,
+      cooldownSeconds: 0,
+    };
+  }
+
+  if (score >= 60) {
+    return {
+      marketOrderAllowed: true,
+      maxSizeFraction: 0.65,
+      executionMode: "limit-preferred" as const,
+      cooldownSeconds: 0,
+    };
+  }
+
+  if (score >= 45) {
+    return {
+      marketOrderAllowed: false,
+      maxSizeFraction: 0.35,
+      executionMode: "limit-only" as const,
+      cooldownSeconds: 15,
+    };
+  }
+
+  return {
+    marketOrderAllowed: false,
+    maxSizeFraction: flags.includes("Publisher Drop") ? 0.1 : 0.2,
+    executionMode: "stand-down" as const,
+    cooldownSeconds: 45,
+  };
+}
+
 function buildNarrative(score: number, flags: string[]) {
   if (score >= 75) {
     return "Publisher agreement, spread quality, and freshness all support execution. Conditions look clean enough for normal positioning.";
@@ -171,6 +207,7 @@ export function computeMarketState(
 
   const riskLevel = getRiskLevel(trustScore);
   const recommendation = getRecommendation(trustScore, flags);
+  const executionPolicy = buildExecutionPolicy(trustScore, flags);
 
   return {
     asset: input.asset,
@@ -180,6 +217,7 @@ export function computeMarketState(
     recommendation,
     narrative: buildNarrative(trustScore, flags),
     flags,
+    executionPolicy,
     evidence: buildEvidence(
       input,
       confidenceMultiplier,
