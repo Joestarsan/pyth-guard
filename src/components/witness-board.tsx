@@ -1,10 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 
 import { EvidenceCard } from "@/components/evidence-card";
 import { PythBrand } from "@/components/pyth-brand";
 import { TimelineStrip } from "@/components/timeline-strip";
+import {
+  CAPTURED_WITNESS_CASE_STORAGE_KEY,
+  parseCapturedWitnessCase,
+} from "@/lib/replay/captured-case";
 import { witnessCases } from "@/lib/replay/witness-cases";
 import { computeMarketState } from "@/lib/trust-engine";
 
@@ -13,10 +18,35 @@ function getWitnessExhibitLabel(index: number) {
 }
 
 export function WitnessBoard() {
+  const searchParams = useSearchParams();
+  const [capturedCase, setCapturedCase] = useState<(typeof witnessCases)[number] | null>(
+    null,
+  );
   const [selectedCaseId, setSelectedCaseId] = useState(witnessCases[0].id);
+  const requestedCaseId = searchParams.get("case");
+  const caseDocket = capturedCase ? [capturedCase, ...witnessCases] : witnessCases;
   const selectedCase =
-    witnessCases.find((item) => item.id === selectedCaseId) ?? witnessCases[0];
+    caseDocket.find((item) => item.id === selectedCaseId) ?? caseDocket[0];
   const caseState = computeMarketState(selectedCase.frame, selectedCase.timeline);
+
+  useEffect(() => {
+    setCapturedCase(
+      parseCapturedWitnessCase(
+        window.localStorage.getItem(CAPTURED_WITNESS_CASE_STORAGE_KEY),
+      ),
+    );
+  }, []);
+
+  useEffect(() => {
+    if (requestedCaseId === "captured" && capturedCase) {
+      setSelectedCaseId(capturedCase.id);
+      return;
+    }
+
+    if (requestedCaseId && witnessCases.some((item) => item.id === requestedCaseId)) {
+      setSelectedCaseId(requestedCaseId);
+    }
+  }, [requestedCaseId, capturedCase]);
 
   return (
     <section className="witnessShell">
@@ -41,6 +71,11 @@ export function WitnessBoard() {
         <div className="heroMeta">
           <span className="assetBadge">{selectedCase.defendant}</span>
           <span className="assetBadge subtle">{selectedCase.charge}</span>
+          {selectedCase.captureMeta ? (
+            <span className={`assetBadge subtle status${selectedCase.captureMeta.status}`}>
+              Captured: {selectedCase.captureMeta.source === "pyth-pro" ? "Pyth Pro" : "Fallback"}
+            </span>
+          ) : null}
         </div>
       </header>
 
@@ -52,7 +87,7 @@ export function WitnessBoard() {
           </div>
 
           <div className="caseList">
-            {witnessCases.map((item) => (
+            {caseDocket.map((item) => (
               <button
                 key={item.id}
                 type="button"
@@ -61,6 +96,11 @@ export function WitnessBoard() {
               >
                 <span className="caseTitle">{item.title}</span>
                 <span className="caseSubtitle">{item.subtitle}</span>
+                {item.captureMeta ? (
+                  <span className="caseMetaTag">
+                    {item.captureMeta.intent} {item.frame.asset}
+                  </span>
+                ) : null}
               </button>
             ))}
           </div>

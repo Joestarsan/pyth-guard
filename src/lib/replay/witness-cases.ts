@@ -1,4 +1,5 @@
 import { MarketInput, mockScenarioFrames } from "@/lib/mock-market-state";
+import { MarketSource, MarketStreamStatus } from "@/lib/market-data/types";
 
 export type WitnessRole = "Prosecutor" | "Defense" | "Judge" | "Guard";
 
@@ -19,6 +20,13 @@ export type WitnessCase = {
   recommendedAction: string;
   evidenceSummary: string[];
   lines: WitnessLine[];
+  captureMeta?: {
+    source: MarketSource;
+    status: MarketStreamStatus;
+    intent: string;
+    orderSize: number;
+    capturedAtIso: string;
+  };
 };
 
 const disciplinedExitFrame: MarketInput = {

@@ -7,7 +7,7 @@ import {
   MarketSource,
   MarketStreamStatus,
 } from "@/lib/market-data/types";
-import { MarketState } from "@/lib/mock-market-state";
+import { MarketInput, MarketState } from "@/lib/mock-market-state";
 import { computeMarketState } from "@/lib/trust-engine";
 
 const DEFAULT_SEED_TIMELINE = [86, 84, 83, 82, 84, 86];
@@ -26,6 +26,7 @@ export function useMarketStream({
   intervalMs,
 }: UseMarketStreamOptions) {
   const [frameIndex, setFrameIndex] = useState(0);
+  const [input, setInput] = useState<MarketInput | null>(null);
   const [state, setState] = useState<MarketState | null>(null);
   const [source, setSource] = useState<MarketSource>("mock");
   const [status, setStatus] = useState<MarketStreamStatus>("warming");
@@ -35,6 +36,7 @@ export function useMarketStream({
 
   useEffect(() => {
     setFrameIndex(0);
+    setInput(null);
     setState(null);
     setSource("mock");
     setStatus("warming");
@@ -54,6 +56,7 @@ export function useMarketStream({
         baselineTarget: nextBaselineTarget,
       }) => {
         setFrameIndex(nextFrameIndex);
+        setInput(input);
         setSource(nextSource);
         setStatus(nextStatus);
         setNotice(nextNotice);
@@ -75,6 +78,7 @@ export function useMarketStream({
 
   return {
     frameIndex,
+    input,
     state,
     source,
     status,

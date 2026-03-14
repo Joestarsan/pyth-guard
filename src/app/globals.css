@@ -831,6 +831,18 @@ textarea {
   text-transform: uppercase;
 }
 
+.modeActionButton {
+  padding: 12px 16px;
+  border: 1px solid rgba(176, 108, 255, 0.18);
+  border-radius: 16px;
+  background: rgba(176, 108, 255, 0.08);
+  color: var(--text);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .timelineStrip {
   align-items: end;
   gap: 10px;
@@ -1053,6 +1065,19 @@ textarea {
 .caseSubtitle {
   color: var(--muted);
   line-height: 1.45;
+}
+
+.caseMetaTag {
+  justify-self: start;
+  padding: 7px 10px;
+  border: 1px solid rgba(176, 108, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(176, 108, 255, 0.08);
+  color: rgba(239, 227, 255, 0.82);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 .verdictWord {

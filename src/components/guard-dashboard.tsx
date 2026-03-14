@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -11,6 +12,10 @@ import { PythBrand } from "@/components/pyth-brand";
 import { TimelineStrip } from "@/components/timeline-strip";
 import { TrustDial } from "@/components/trust-dial";
 import { useMarketStream } from "@/hooks/use-market-stream";
+import {
+  buildCapturedWitnessCase,
+  CAPTURED_WITNESS_CASE_STORAGE_KEY,
+} from "@/lib/replay/captured-case";
 import { supportedAssets, SupportedAsset } from "@/lib/mock-market-state";
 
 const quickActions = ["Long", "Short", "Swap", "Exit"] as const;
@@ -36,14 +41,23 @@ function getExhibitLabel(index: number) {
 }
 
 export function GuardDashboard() {
+  const router = useRouter();
   const [asset, setAsset] = useState<SupportedAsset>("BTC / USD");
   const [intent, setIntent] = useState<(typeof quickActions)[number]>("Long");
   const [orderSize, setOrderSize] = useState(15_000);
-  const { frameIndex, state, status, notice, baselineSamples, baselineTarget } =
-    useMarketStream({
-      asset,
-      provider: apiMarketProvider,
-    });
+  const {
+    frameIndex,
+    input,
+    state,
+    source,
+    status,
+    notice,
+    baselineSamples,
+    baselineTarget,
+  } = useMarketStream({
+    asset,
+    provider: apiMarketProvider,
+  });
 
   if (state === null) {
     return null;
@@ -64,6 +78,27 @@ export function GuardDashboard() {
           }`
         : undefined;
   const guardCap = Math.round(orderSize * state.executionPolicy.maxSizeFraction);
+
+  function captureCaseForWitness() {
+    if (input === null || state === null) {
+      return;
+    }
+
+    const capturedCase = buildCapturedWitnessCase({
+      input,
+      state,
+      source,
+      status,
+      intent,
+      orderSize,
+    });
+
+    window.localStorage.setItem(
+      CAPTURED_WITNESS_CASE_STORAGE_KEY,
+      JSON.stringify(capturedCase),
+    );
+    router.push("/witness?case=captured");
+  }
 
   return (
     <>
@@ -224,6 +259,13 @@ export function GuardDashboard() {
             </p>
             <div className="witnessPanelFooter">
               <div className="witnessStamp">OBJECTION READY</div>
+              <button
+                type="button"
+                className="modeActionButton"
+                onClick={captureCaseForWitness}
+              >
+                Capture Current Case
+              </button>
               <Link href="/witness" className="modeLaunchLink">
                 Enter Trial Mode
               </Link>
