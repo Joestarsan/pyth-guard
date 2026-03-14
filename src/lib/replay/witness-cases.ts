@@ -26,6 +26,9 @@ export type WitnessCase = {
     intent: string;
     orderSize: number;
     capturedAtIso: string;
+    entryPrice?: number;
+    ticketScore?: number;
+    ticketVerdict?: string;
   };
 };
 

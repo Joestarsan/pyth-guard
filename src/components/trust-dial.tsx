@@ -1,11 +1,16 @@
 import { MarketStreamStatus } from "@/lib/market-data/types";
 import { MarketState } from "@/lib/mock-market-state";
+import {
+  formatPrice,
+  TradeAssessment,
+} from "@/lib/trade-ticket";
 
 type TrustDialProps = {
   state: MarketState;
   status: MarketStreamStatus;
   baselineSamples?: number;
   baselineTarget?: number;
+  tradeAssessment: TradeAssessment;
 };
 
 function getStatusNote(
@@ -37,17 +42,21 @@ export function TrustDial({
   status,
   baselineSamples,
   baselineTarget,
+  tradeAssessment,
 }: TrustDialProps) {
   const circumference = 2 * Math.PI * 120;
-  const offset = circumference - (state.trustScore / 100) * circumference;
+  const safeScore = Number.isFinite(tradeAssessment.score)
+    ? Math.min(Math.max(tradeAssessment.score, 0), 100)
+    : 0;
+  const offset = circumference - (safeScore / 100) * circumference;
   const statusNote = getStatusNote(status, baselineSamples, baselineTarget);
-  const spotlightMetrics = state.evidence.slice(0, 4);
+  const spotlightMetrics = tradeAssessment.evidence.slice(0, 4);
   const eyebrow =
     status === "fallback"
-      ? "Fallback Trust Verdict"
+      ? "Fallback Position Verdict"
       : status === "warming"
-        ? "Live Trust Warm-up"
-        : "Live Trust Verdict";
+        ? "Live Position Warm-up"
+        : "Live Position Verdict";
 
   return (
     <section className="trustDial">
@@ -61,8 +70,7 @@ export function TrustDial({
               cx="150"
               cy="150"
               r="120"
-              pathLength="1"
-              strokeDasharray={circumference}
+              strokeDasharray={`${circumference} ${circumference}`}
               strokeDashoffset={offset}
             />
           </svg>
@@ -70,11 +78,17 @@ export function TrustDial({
 
           <div className="dialContent">
             <span className="dialEyebrow">{eyebrow}</span>
-            <strong className="dialScore">{state.trustScore}</strong>
-            <span className={`riskBadge risk${state.riskLevel}`}>
-              {state.riskLevel}
+            <strong className="dialScore">{safeScore}</strong>
+            <span className={`riskBadge risk${tradeAssessment.riskLevel}`}>
+              {tradeAssessment.riskLevel}
             </span>
-            <p className="dialRecommendation">{state.recommendation}</p>
+            <p className="dialRecommendation">{tradeAssessment.verdict}</p>
+            <div className="dialMetaRow">
+              <span className="dialMetaChip">Market trust {state.trustScore}</span>
+              <span className="dialMetaChip">
+                Entry {formatPrice(tradeAssessment.entryPrice, state.asset)}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -89,7 +103,7 @@ export function TrustDial({
         </div>
 
         <div className="dialNarrativeBlock">
-          <p className="dialNarrative">{state.narrative}</p>
+          <p className="dialNarrative">{tradeAssessment.summary}</p>
           {statusNote ? (
             <p className={`dialStatusNote status${status}`}>{statusNote}</p>
           ) : null}

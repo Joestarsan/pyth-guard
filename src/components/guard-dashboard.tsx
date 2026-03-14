@@ -1,8 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { apiMarketProvider } from "@/lib/market-data/api-provider";
 import { EvidenceCard } from "@/components/evidence-card";
@@ -10,6 +9,7 @@ import { ExecutionPolicyCard } from "@/components/execution-policy-card";
 import { ModeNav } from "@/components/mode-nav";
 import { PythBrand } from "@/components/pyth-brand";
 import { TimelineStrip } from "@/components/timeline-strip";
+import { TrialVerdictOverlay } from "@/components/trial-verdict-overlay";
 import { TrustDial } from "@/components/trust-dial";
 import { useMarketStream } from "@/hooks/use-market-stream";
 import {
@@ -17,13 +17,19 @@ import {
   storeCapturedWitnessCase,
 } from "@/lib/replay/captured-case";
 import { supportedAssets, SupportedAsset } from "@/lib/mock-market-state";
+import {
+  assessTradeTicket,
+  formatPrice,
+  getDefaultEntryPrice,
+  tradeIntents,
+  TradeIntent,
+} from "@/lib/trade-ticket";
 
-const quickActions = ["Long", "Short", "Swap", "Exit"] as const;
 const heroSignals = [
-  "Confidence",
-  "Spread",
-  "Publisher Count",
-  "Feed Freshness",
+  "Live Ticket Score",
+  "Position Admissibility",
+  "Courtroom Trigger",
+  "Execution Evidence",
 ] as const;
 
 const currencyFormatter = new Intl.NumberFormat("en-US", {
@@ -36,15 +42,22 @@ function formatCurrency(value: number) {
   return currencyFormatter.format(value);
 }
 
+function formatEditablePrice(value: number) {
+  return value.toFixed(2);
+}
+
 function getExhibitLabel(index: number) {
   return `Exhibit ${String.fromCharCode(65 + index)}`;
 }
 
 export function GuardDashboard() {
-  const router = useRouter();
   const [asset, setAsset] = useState<SupportedAsset>("BTC / USD");
-  const [intent, setIntent] = useState<(typeof quickActions)[number]>("Long");
+  const [intent, setIntent] = useState<TradeIntent>("Long");
   const [orderSize, setOrderSize] = useState(15_000);
+  const [entryPriceText, setEntryPriceText] = useState("");
+  const [entryPriceTouched, setEntryPriceTouched] = useState(false);
+  const [activeTrialCaseId, setActiveTrialCaseId] = useState<string | null>(null);
+  const [isTrialOpen, setIsTrialOpen] = useState(false);
   const {
     frameIndex,
     input,
@@ -59,7 +72,20 @@ export function GuardDashboard() {
     provider: apiMarketProvider,
   });
 
-  if (state === null) {
+  useEffect(() => {
+    setEntryPriceTouched(false);
+    setEntryPriceText("");
+  }, [asset]);
+
+  useEffect(() => {
+    if (!input || entryPriceTouched) {
+      return;
+    }
+
+    setEntryPriceText(formatEditablePrice(getDefaultEntryPrice(input, intent)));
+  }, [input, intent, entryPriceTouched]);
+
+  if (state === null || input === null) {
     return null;
   }
 
@@ -77,10 +103,27 @@ export function GuardDashboard() {
             status === "live" ? "Ready" : `${baselineSamples ?? 0}/${baselineTarget}`
           }`
         : undefined;
-  const guardCap = Math.round(orderSize * state.executionPolicy.maxSizeFraction);
+  const parsedEntryPrice = Number(entryPriceText);
+  const liveReferencePrice = getDefaultEntryPrice(input, intent);
+  const effectiveEntryPrice =
+    Number.isFinite(parsedEntryPrice) && parsedEntryPrice > 0
+      ? parsedEntryPrice
+      : liveReferencePrice;
+  const tradeAssessment = assessTradeTicket({
+    input,
+    state,
+    intent,
+    orderSize,
+    entryPrice: effectiveEntryPrice,
+  });
 
-  function captureCaseForWitness() {
-    if (input === null || state === null) {
+  const guardCap = tradeAssessment.guardCap;
+  const exhibitDeck = [...tradeAssessment.evidence, ...state.evidence.slice(0, 2)];
+  const launchLabel =
+    intent === "Exit" ? "Put Exit On Trial" : `Put ${intent} On Trial`;
+
+  function launchTrial() {
+    if (!input || !state) {
       return;
     }
 
@@ -90,11 +133,17 @@ export function GuardDashboard() {
       source,
       status,
       intent,
-      orderSize,
+      tradeAssessment,
     });
 
     storeCapturedWitnessCase(window.localStorage, capturedCase);
-    router.push(`/witness?case=${capturedCase.id}`);
+    setActiveTrialCaseId(capturedCase.id);
+    setIsTrialOpen(true);
+  }
+
+  function syncEntryToLive() {
+    setEntryPriceTouched(false);
+    setEntryPriceText(formatEditablePrice(liveReferencePrice));
   }
 
   return (
@@ -115,8 +164,8 @@ export function GuardDashboard() {
             </div>
             <h1>Is this market trustworthy enough to execute?</h1>
             <p className="heroLead">
-              A real-time execution trust layer that translates Pyth Pro market
-              structure into an actionable verdict.
+              Build a live ticket, put it on trial, and let Pyth Guard argue
+              whether the position deserves to be admitted.
             </p>
           </div>
 
@@ -138,7 +187,7 @@ export function GuardDashboard() {
           <aside className="intentPanel">
             <div className="panelHeader">
               <span className="panelEyebrow">Trade Intent</span>
-              <strong>{intent} Execution Console</strong>
+              <strong>{intent} Ticket Builder</strong>
             </div>
 
             <label className="field">
@@ -158,8 +207,23 @@ export function GuardDashboard() {
             </label>
 
             <label className="field">
-              <span>Order Size</span>
-              <div className="fieldValue">{formatCurrency(orderSize)}</div>
+              <span>Position Notional</span>
+              <input
+                type="number"
+                min={2_000}
+                max={50_000}
+                step={1_000}
+                value={orderSize}
+                onChange={(event) =>
+                  setOrderSize(
+                    Math.min(
+                      50_000,
+                      Math.max(2_000, Number(event.target.value) || 2_000),
+                    ),
+                  )
+                }
+                className="ticketInput"
+              />
               <input
                 type="range"
                 min={2_000}
@@ -175,7 +239,7 @@ export function GuardDashboard() {
             </label>
 
             <div className="actionGrid">
-              {quickActions.map((action) => (
+              {tradeIntents.map((action) => (
                 <button
                   key={action}
                   type="button"
@@ -188,12 +252,39 @@ export function GuardDashboard() {
               ))}
             </div>
 
+            <label className="field">
+              <span>Entry Price</span>
+              <div className="fieldControlRow">
+                <input
+                  type="number"
+                  min={0}
+                  step={0.01}
+                  value={entryPriceText}
+                  onChange={(event) => {
+                    setEntryPriceTouched(true);
+                    setEntryPriceText(event.target.value);
+                  }}
+                  className="ticketInput"
+                />
+                <button
+                  type="button"
+                  className="inlineActionButton"
+                  onClick={syncEntryToLive}
+                >
+                  Use Live
+                </button>
+              </div>
+              <div className="fieldHint">
+                Live reference: {formatPrice(liveReferencePrice, asset)}
+              </div>
+            </label>
+
             <div className="flagStack">
-              <span className="panelEyebrow">Active Flags</span>
-              {state.flags.length > 0 ? (
-                state.flags.map((flag) => (
-                  <div key={flag} className="flagBadge">
-                    {flag}
+              <span className="panelEyebrow">Court Objections</span>
+              {tradeAssessment.objections.length > 0 ? (
+                tradeAssessment.objections.slice(0, 3).map((item) => (
+                  <div key={item} className="flagBadge narrative">
+                    {item}
                   </div>
                 ))
               ) : (
@@ -201,6 +292,22 @@ export function GuardDashboard() {
               )}
 
               {notice ? <p className="panelNotice">{notice}</p> : null}
+            </div>
+
+            <div className="trialLaunchCard">
+              <span className="panelEyebrow">Court Trigger</span>
+              <strong>{launchLabel}</strong>
+              <p>
+                Launch the verdict stage with live transcript, sound cue, and a
+                witness dossier you can reopen later.
+              </p>
+              <button
+                type="button"
+                className="trialLaunchButton"
+                onClick={launchTrial}
+              >
+                {launchLabel}
+              </button>
             </div>
           </aside>
 
@@ -210,22 +317,23 @@ export function GuardDashboard() {
               status={status}
               baselineSamples={baselineSamples}
               baselineTarget={baselineTarget}
+              tradeAssessment={tradeAssessment}
             />
 
             <section className="evidencePanel evidenceDeck">
               <div className="panelHeader">
                 <span className="panelEyebrow">Exhibit Rail</span>
-                <strong>What Pyth Is Arguing</strong>
+                <strong>Why This Ticket Is or Is Not Admissible</strong>
               </div>
               <p className="evidenceLead">
-                Each exhibit shows the signal that is pushing Guard toward
-                conviction or restraint.
+                The first exhibits belong to the ticket itself. The last ones are
+                live Pyth market structure feeding the court.
               </p>
 
               <div className="evidenceStack evidenceRail">
-                {state.evidence.map((item, index) => (
+                {exhibitDeck.map((item, index) => (
                   <EvidenceCard
-                    key={item.label}
+                    key={`${item.label}-${index}`}
                     item={item}
                     eyebrow={getExhibitLabel(index)}
                   />
@@ -243,6 +351,7 @@ export function GuardDashboard() {
             baselineTarget={baselineTarget}
             intent={intent}
             orderSize={orderSize}
+            tradeAssessment={tradeAssessment}
           />
 
           <article className="witnessPanel">
@@ -251,17 +360,19 @@ export function GuardDashboard() {
               <strong>Market Witness</strong>
             </div>
             <p>
-              The same trust engine will replay bad trades as courtroom evidence.
-              For the demo build, this panel becomes the forensic confrontation layer.
+              Every hearing is stored as a dossier. Open the full courtroom if
+              you want the replay layer and captured case rail.
             </p>
             <div className="witnessPanelFooter">
-              <div className="witnessStamp">OBJECTION READY</div>
+              <div className="witnessStamp">
+                {tradeAssessment.verdict.toUpperCase()}
+              </div>
               <button
                 type="button"
                 className="modeActionButton"
-                onClick={captureCaseForWitness}
+                onClick={launchTrial}
               >
-                Capture Current Case
+                {launchLabel}
               </button>
               <Link href="/witness" className="modeLaunchLink">
                 Enter Trial Mode
@@ -278,6 +389,17 @@ export function GuardDashboard() {
           </article>
         </section>
       </section>
+
+      {isTrialOpen && activeTrialCaseId ? (
+        <TrialVerdictOverlay
+          caseId={activeTrialCaseId}
+          source={source}
+          status={status}
+          notice={notice}
+          tradeAssessment={tradeAssessment}
+          onClose={() => setIsTrialOpen(false)}
+        />
+      ) : null}
     </>
   );
 }

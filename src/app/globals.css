@@ -45,6 +45,10 @@ textarea {
   font: inherit;
 }
 
+button {
+  cursor: pointer;
+}
+
 .pageShell {
   position: relative;
   overflow: hidden;
@@ -425,6 +429,46 @@ textarea {
   font-size: 0.86rem;
 }
 
+.fieldControlRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  width: 100%;
+}
+
+.ticketInput {
+  width: 100%;
+  padding: 13px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+}
+
+.ticketInput:focus,
+.inlineActionButton:focus,
+.trialLaunchButton:focus,
+.modeActionButton:focus,
+.assetSwitchButton:focus,
+.actionChip:focus,
+.trialCloseButton:focus {
+  outline: 2px solid rgba(176, 108, 255, 0.52);
+  outline-offset: 2px;
+}
+
+.inlineActionButton {
+  padding: 12px 14px;
+  border: 1px solid rgba(176, 108, 255, 0.18);
+  border-radius: 14px;
+  background: rgba(176, 108, 255, 0.1);
+  color: var(--text);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.74rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
 .assetSwitch {
   display: flex;
   gap: 10px;
@@ -512,8 +556,47 @@ textarea {
   color: var(--danger-coral);
 }
 
+.flagBadge.narrative {
+  border-radius: 18px;
+  color: rgba(255, 219, 225, 0.9);
+  text-transform: none;
+  letter-spacing: normal;
+  line-height: 1.55;
+}
+
 .flagBadge.calm {
   color: var(--verdict-mint);
+}
+
+.trialLaunchCard {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid rgba(251, 113, 133, 0.2);
+  border-radius: 20px;
+  background:
+    linear-gradient(135deg, rgba(251, 113, 133, 0.12), rgba(143, 91, 255, 0.1)),
+    rgba(255, 255, 255, 0.04);
+}
+
+.trialLaunchCard p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.trialLaunchButton {
+  padding: 14px 18px;
+  border: 1px solid rgba(251, 113, 133, 0.26);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(251, 113, 133, 0.88), rgba(143, 91, 255, 0.82));
+  color: white;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  box-shadow: 0 20px 40px rgba(139, 24, 60, 0.25);
 }
 
 .dialAura {
@@ -627,6 +710,25 @@ textarea {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+}
+
+.dialMetaRow {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.dialMetaChip {
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .dialSignalGrid {
@@ -924,6 +1026,16 @@ textarea {
   background: rgba(245, 158, 11, 0.08);
 }
 
+.policyRecommendation {
+  margin: 0;
+  padding: 14px 16px;
+  border: 1px solid rgba(176, 108, 255, 0.16);
+  border-radius: 18px;
+  background: rgba(176, 108, 255, 0.08);
+  color: rgba(248, 239, 255, 0.92);
+  line-height: 1.6;
+}
+
 .timelineBarWrap {
   display: grid;
   align-items: end;
@@ -1209,6 +1321,136 @@ textarea {
   line-height: 1.65;
 }
 
+.trialOverlayBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(3, 2, 8, 0.74);
+  backdrop-filter: blur(18px);
+}
+
+.trialOverlay {
+  position: relative;
+  width: min(1080px, 100%);
+  display: grid;
+  gap: 22px;
+  padding: 26px;
+  border: 1px solid rgba(251, 113, 133, 0.26);
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at 50% 8%, rgba(251, 113, 133, 0.12), transparent 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.015)),
+    rgba(11, 7, 21, 0.96);
+  box-shadow: 0 40px 120px rgba(0, 0, 0, 0.55);
+  animation: revealUp 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.trialCloseButton {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.74rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.trialTopline {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding-right: 96px;
+  flex-wrap: wrap;
+}
+
+.trialStamp {
+  justify-self: start;
+  transform: rotate(-10deg);
+  animation: objectionStamp 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.trialGrid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+}
+
+.trialVerdictPanel,
+.trialTranscriptPanel {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.trialScore {
+  font-size: clamp(4rem, 8vw, 6rem);
+  line-height: 0.88;
+  letter-spacing: -0.08em;
+}
+
+.trialVerdictWord {
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  line-height: 0.95;
+  letter-spacing: -0.05em;
+}
+
+.trialVerdictCopy,
+.trialNotice {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.trialTagRow,
+.trialActionRow {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.trialObjectionList {
+  display: grid;
+  gap: 10px;
+}
+
+.trialObjectionItem {
+  padding: 13px 14px;
+  border: 1px solid rgba(251, 113, 133, 0.18);
+  border-radius: 16px;
+  background: rgba(251, 113, 133, 0.08);
+  line-height: 1.6;
+}
+
+.trialTranscriptList {
+  margin-top: 0;
+}
+
+.trialLine {
+  opacity: 0;
+  animation: revealUp 340ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.trialOverlayFooter {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
 @keyframes revealUp {
   0% {
     opacity: 0;
@@ -1232,9 +1474,25 @@ textarea {
   }
 }
 
+@keyframes objectionStamp {
+  0% {
+    opacity: 0;
+    transform: scale(0.82) rotate(-14deg);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.06) rotate(-10deg);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(-10deg);
+  }
+}
+
 @media (max-width: 1180px) {
   .witnessLayout,
-  .witnessStageTop {
+  .witnessStageTop,
+  .trialGrid {
     flex-direction: column;
   }
 
@@ -1244,7 +1502,8 @@ textarea {
   }
 
   .witnessLayout,
-  .witnessStageTop {
+  .witnessStageTop,
+  .trialGrid {
     display: flex;
   }
 
@@ -1277,6 +1536,19 @@ textarea {
     justify-content: flex-start;
   }
 
+  .fieldControlRow,
+  .trialOverlayFooter {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .fieldControlRow {
+    display: grid;
+  }
+
+  .trialTopline {
+    padding-right: 0;
+  }
+
   .dialCore {
     min-height: 320px;
   }
@@ -1284,5 +1556,9 @@ textarea {
   .dialSignalGrid,
   .policyGrid {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .trialOverlay {
+    padding: 20px;
   }
 }

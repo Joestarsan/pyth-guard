@@ -1,5 +1,10 @@
 import { MarketSource, MarketStreamStatus } from "@/lib/market-data/types";
 import { MarketInput, MarketState } from "@/lib/mock-market-state";
+import {
+  formatCurrency,
+  formatPrice,
+  TradeAssessment,
+} from "@/lib/trade-ticket";
 
 import { WitnessCase } from "@/lib/replay/witness-cases";
 
@@ -16,16 +21,8 @@ type CapturedWitnessCaseOptions = {
   source: MarketSource;
   status: MarketStreamStatus;
   intent: string;
-  orderSize: number;
+  tradeAssessment: TradeAssessment;
 };
-
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(value);
-}
 
 function createCapturedCaseId() {
   return `${CAPTURED_WITNESS_CASE_ID_PREFIX}-${Date.now().toString(36)}`;
@@ -47,81 +44,50 @@ function toSubtitle(status: MarketStreamStatus, source: MarketSource) {
   return "Captured from the fallback scenario stream for courtroom replay.";
 }
 
-function toVerdict(state: MarketState) {
-  if (state.riskLevel === "Safe") return "Admissible Execution";
-  if (state.riskLevel === "Caution") return "Contested Entry";
-  return "Execution Rejected";
-}
-
-function toCharge(intent: string, state: MarketState, orderSize: number) {
-  if (state.riskLevel === "Safe") {
-    return `Testing whether a ${formatCurrency(orderSize)} ${intent.toLowerCase()} was justified under clean market conditions.`;
+function toCharge(
+  intent: string,
+  asset: string,
+  tradeAssessment: TradeAssessment,
+) {
+  if (intent === "Exit") {
+    return `Testing whether closing ${formatCurrency(tradeAssessment.orderSize)} near ${formatPrice(
+      tradeAssessment.entryPrice,
+      asset,
+    )} was discipline or overreaction.`;
   }
 
-  if (state.riskLevel === "Caution") {
-    return `Taking a ${formatCurrency(orderSize)} ${intent.toLowerCase()} while execution trust was already degrading.`;
+  if (tradeAssessment.riskLevel === "Safe") {
+    return `Testing whether a ${formatCurrency(tradeAssessment.orderSize)} ${intent.toLowerCase()} deserved admission under clean market conditions.`;
   }
 
-  return `Attempting a ${formatCurrency(orderSize)} ${intent.toLowerCase()} despite Guard signaling that the market should stand down.`;
+  if (tradeAssessment.riskLevel === "Caution") {
+    return `Taking a ${formatCurrency(tradeAssessment.orderSize)} ${intent.toLowerCase()} while Guard demanded tighter execution terms.`;
+  }
+
+  return `Attempting a ${formatCurrency(tradeAssessment.orderSize)} ${intent.toLowerCase()} despite a sustained objection from Guard.`;
 }
 
-function buildEvidenceSummary(state: MarketState) {
-  const summary = state.evidence.slice(0, 3).map((item) => {
-    return `${item.label} registered ${item.delta.toLowerCase()} and pushed the case ${item.trend === "damaging" ? "against" : "toward"} execution.`;
-  });
+function buildEvidenceSummary(
+  state: MarketState,
+  tradeAssessment: TradeAssessment,
+) {
+  const summary = tradeAssessment.objections.slice(0, 3);
 
-  if (state.flags.length === 0) {
-    summary.push("No major flags were raised, so the case hinges on whether the verdict was respected.");
-  } else {
-    summary.push(`Guard flagged ${state.flags.join(", ")}, which materially changed the execution posture.`);
+  if (summary.length < 3) {
+    summary.push(
+      ...state.evidence.slice(0, 3 - summary.length).map((item) => {
+        return `${item.label} registered ${item.delta.toLowerCase()} and pushed the case ${item.trend === "damaging" ? "against" : "toward"} execution.`;
+      }),
+    );
+  }
+
+  if (state.flags.length > 0) {
+    summary.push(
+      `Guard also flagged ${state.flags.join(", ")}, which materially changed the execution posture.`,
+    );
   }
 
   return summary;
-}
-
-function buildTranscript(
-  options: Pick<
-    CapturedWitnessCaseOptions,
-    "intent" | "orderSize" | "source" | "status"
-  > & {
-    state: MarketState;
-  },
-) {
-  const guardCap = Math.round(
-    options.orderSize * options.state.executionPolicy.maxSizeFraction,
-  );
-  const formattedOrderSize = formatCurrency(options.orderSize);
-  const formattedGuardCap = formatCurrency(guardCap);
-
-  return [
-    {
-      role: "Prosecutor" as const,
-      text:
-        options.state.flags.length > 0
-          ? `The defendant asked for a ${formattedOrderSize} ${options.intent.toLowerCase()} while ${options.state.flags.join(" and ").toLowerCase()} were already on the record.`
-          : `The defendant asked for a ${formattedOrderSize} ${options.intent.toLowerCase()} with no obvious red flags, so the court must judge whether the verdict was followed properly.`,
-    },
-    {
-      role: "Defense" as const,
-      text:
-        options.state.riskLevel === "Safe"
-          ? `Trust still printed ${options.state.trustScore}. A trader could argue that the market structure remained orderly enough to proceed.`
-          : `The price may still have looked tradable, but the defense must explain why a deteriorating trust score did not invalidate the entry.`,
-    },
-    {
-      role: "Guard" as const,
-      text: `Pyth Guard recommended "${options.state.recommendation}" with ${options.state.executionPolicy.executionMode} mode and a size cap near ${formattedGuardCap}. Source status: ${options.status}.`,
-    },
-    {
-      role: "Judge" as const,
-      text:
-        options.state.riskLevel === "Safe"
-          ? `Verdict: conditionally admissible. The market quality evidence permitted execution, but only within Guard's documented policy envelope.`
-          : options.state.riskLevel === "Caution"
-            ? `Verdict: contested. Execution was not automatically disallowed, but Guard required more restraint than a normal dashboard would suggest.`
-            : `Verdict: rejected. The market quality evidence did not support aggressive execution, regardless of what the price chart implied.`,
-    },
-  ];
 }
 
 export function buildCapturedWitnessCase({
@@ -130,7 +96,7 @@ export function buildCapturedWitnessCase({
   source,
   status,
   intent,
-  orderSize,
+  tradeAssessment,
 }: CapturedWitnessCaseOptions): WitnessCase {
   const capturedAtIso = new Date().toISOString();
 
@@ -139,21 +105,22 @@ export function buildCapturedWitnessCase({
     title: toTitle(intent, state.asset),
     subtitle: toSubtitle(status, source),
     defendant: `${intent} ${state.asset} Ticket`,
-    charge: toCharge(intent, state, orderSize),
+    charge: toCharge(intent, state.asset, tradeAssessment),
     frame: input,
     timeline: state.timeline,
-    verdict: toVerdict(state),
-    recommendedAction: `${state.recommendation} with guard cap near ${formatCurrency(
-      Math.round(orderSize * state.executionPolicy.maxSizeFraction),
-    )}.`,
-    evidenceSummary: buildEvidenceSummary(state),
-    lines: buildTranscript({ intent, orderSize, source, status, state }),
+    verdict: tradeAssessment.verdict,
+    recommendedAction: tradeAssessment.recommendedAction,
+    evidenceSummary: buildEvidenceSummary(state, tradeAssessment),
+    lines: tradeAssessment.lines,
     captureMeta: {
       source,
       status,
       intent,
-      orderSize,
+      orderSize: tradeAssessment.orderSize,
       capturedAtIso,
+      entryPrice: tradeAssessment.entryPrice,
+      ticketScore: tradeAssessment.score,
+      ticketVerdict: tradeAssessment.verdict,
     },
   };
 }

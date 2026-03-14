@@ -1,5 +1,9 @@
 import { MarketStreamStatus } from "@/lib/market-data/types";
 import { MarketState } from "@/lib/mock-market-state";
+import {
+  formatPrice,
+  TradeAssessment,
+} from "@/lib/trade-ticket";
 
 type ExecutionPolicyCardProps = {
   state: MarketState;
@@ -8,11 +12,8 @@ type ExecutionPolicyCardProps = {
   baselineTarget?: number;
   intent: string;
   orderSize: number;
+  tradeAssessment: TradeAssessment;
 };
-
-function formatPercent(value: number) {
-  return `${Math.round(value * 100)}%`;
-}
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat("en-US", {
@@ -49,10 +50,12 @@ export function ExecutionPolicyCard({
   baselineTarget,
   intent,
   orderSize,
+  tradeAssessment,
 }: ExecutionPolicyCardProps) {
   const { executionPolicy } = state;
   const policyNotice = getPolicyNotice(status, baselineSamples, baselineTarget);
-  const guardCap = Math.round(orderSize * executionPolicy.maxSizeFraction);
+  const guardCap = tradeAssessment.guardCap;
+  const sizePercentOfCap = `${Math.round(tradeAssessment.sizeRatio * 100)}%`;
 
   return (
     <article className="policyCard">
@@ -65,26 +68,29 @@ export function ExecutionPolicyCard({
         <span className="policyIntentBadge">{intent}</span>
         <span>Request {formatCurrency(orderSize)}</span>
         <span>Guard cap {formatCurrency(guardCap)}</span>
+        <span>Ticket {tradeAssessment.score}</span>
       </div>
 
       <div className="policyGrid">
         <div className="policyMetric">
-          <span>Mode</span>
+          <span>Entry</span>
+          <strong>{formatPrice(tradeAssessment.entryPrice, state.asset)}</strong>
+        </div>
+        <div className="policyMetric">
+          <span>Live Mark</span>
+          <strong>{formatPrice(tradeAssessment.referencePrice, state.asset)}</strong>
+        </div>
+        <div className="policyMetric">
+          <span>Size vs Cap</span>
+          <strong>{sizePercentOfCap}</strong>
+        </div>
+        <div className="policyMetric">
+          <span>Route</span>
           <strong>{executionPolicy.executionMode}</strong>
         </div>
-        <div className="policyMetric">
-          <span>Market Order</span>
-          <strong>{executionPolicy.marketOrderAllowed ? "Allowed" : "Blocked"}</strong>
-        </div>
-        <div className="policyMetric">
-          <span>Max Size</span>
-          <strong>{formatPercent(executionPolicy.maxSizeFraction)}</strong>
-        </div>
-        <div className="policyMetric">
-          <span>Cooldown</span>
-          <strong>{executionPolicy.cooldownSeconds}s</strong>
-        </div>
       </div>
+
+      <p className="policyRecommendation">{tradeAssessment.recommendedAction}</p>
 
       {policyNotice ? (
         <p className={`policyNotice status${status}`}>{policyNotice}</p>

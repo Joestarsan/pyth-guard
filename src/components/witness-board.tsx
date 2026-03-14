@@ -84,6 +84,11 @@ export function WitnessBoard() {
               Captured: {selectedCase.captureMeta.source === "pyth-pro" ? "Pyth Pro" : "Fallback"}
             </span>
           ) : null}
+          {selectedCase.captureMeta?.ticketScore ? (
+            <span className="assetBadge subtle">
+              Ticket Score: {selectedCase.captureMeta.ticketScore}
+            </span>
+          ) : null}
         </div>
       </header>
 
@@ -122,6 +127,9 @@ export function WitnessBoard() {
                 {item.captureMeta ? (
                   <span className="caseMetaTag">
                     {item.captureMeta.intent} {item.frame.asset}
+                    {item.captureMeta.ticketScore
+                      ? ` · ${item.captureMeta.ticketScore}`
+                      : ""}
                   </span>
                 ) : null}
               </button>
