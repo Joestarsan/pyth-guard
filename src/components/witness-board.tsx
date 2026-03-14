@@ -7,10 +7,10 @@ import { EvidenceCard } from "@/components/evidence-card";
 import { PythBrand } from "@/components/pyth-brand";
 import { TimelineStrip } from "@/components/timeline-strip";
 import {
-  CAPTURED_WITNESS_CASE_STORAGE_KEY,
-  parseCapturedWitnessCase,
+  clearCapturedWitnessCases,
+  readCapturedWitnessCases,
 } from "@/lib/replay/captured-case";
-import { witnessCases } from "@/lib/replay/witness-cases";
+import { WitnessCase, witnessCases } from "@/lib/replay/witness-cases";
 import { computeMarketState } from "@/lib/trust-engine";
 
 function getWitnessExhibitLabel(index: number) {
@@ -19,34 +19,42 @@ function getWitnessExhibitLabel(index: number) {
 
 export function WitnessBoard() {
   const searchParams = useSearchParams();
-  const [capturedCase, setCapturedCase] = useState<(typeof witnessCases)[number] | null>(
-    null,
-  );
+  const [capturedCases, setCapturedCases] = useState<WitnessCase[]>([]);
   const [selectedCaseId, setSelectedCaseId] = useState(witnessCases[0].id);
   const requestedCaseId = searchParams.get("case");
-  const caseDocket = capturedCase ? [capturedCase, ...witnessCases] : witnessCases;
+  const caseDocket = [...capturedCases, ...witnessCases];
   const selectedCase =
     caseDocket.find((item) => item.id === selectedCaseId) ?? caseDocket[0];
   const caseState = computeMarketState(selectedCase.frame, selectedCase.timeline);
 
   useEffect(() => {
-    setCapturedCase(
-      parseCapturedWitnessCase(
-        window.localStorage.getItem(CAPTURED_WITNESS_CASE_STORAGE_KEY),
-      ),
-    );
+    setCapturedCases(readCapturedWitnessCases(window.localStorage));
   }, []);
 
   useEffect(() => {
-    if (requestedCaseId === "captured" && capturedCase) {
-      setSelectedCaseId(capturedCase.id);
+    const availableCaseIds = new Set(caseDocket.map((item) => item.id));
+
+    if (
+      requestedCaseId &&
+      availableCaseIds.has(requestedCaseId)
+    ) {
+      setSelectedCaseId(requestedCaseId);
       return;
     }
 
-    if (requestedCaseId && witnessCases.some((item) => item.id === requestedCaseId)) {
-      setSelectedCaseId(requestedCaseId);
+    if (!availableCaseIds.has(selectedCaseId)) {
+      setSelectedCaseId(caseDocket[0].id);
     }
-  }, [requestedCaseId, capturedCase]);
+  }, [requestedCaseId, capturedCases, selectedCaseId]);
+
+  function clearCapturedDocket() {
+    clearCapturedWitnessCases(window.localStorage);
+    setCapturedCases([]);
+
+    if (selectedCase.captureMeta) {
+      setSelectedCaseId(witnessCases[0].id);
+    }
+  }
 
   return (
     <section className="witnessShell">
@@ -85,6 +93,21 @@ export function WitnessBoard() {
             <span className="panelEyebrow">Cases</span>
             <strong>Trial Docket</strong>
           </div>
+
+          {capturedCases.length > 0 ? (
+            <div className="caseRailTools">
+              <span className="caseCountTag">
+                Captured dossiers: {capturedCases.length}
+              </span>
+              <button
+                type="button"
+                className="modeActionButton subtle"
+                onClick={clearCapturedDocket}
+              >
+                Clear Captures
+              </button>
+            </div>
+          ) : null}
 
           <div className="caseList">
             {caseDocket.map((item) => (

@@ -14,7 +14,7 @@ import { TrustDial } from "@/components/trust-dial";
 import { useMarketStream } from "@/hooks/use-market-stream";
 import {
   buildCapturedWitnessCase,
-  CAPTURED_WITNESS_CASE_STORAGE_KEY,
+  storeCapturedWitnessCase,
 } from "@/lib/replay/captured-case";
 import { supportedAssets, SupportedAsset } from "@/lib/mock-market-state";
 
@@ -93,11 +93,8 @@ export function GuardDashboard() {
       orderSize,
     });
 
-    window.localStorage.setItem(
-      CAPTURED_WITNESS_CASE_STORAGE_KEY,
-      JSON.stringify(capturedCase),
-    );
-    router.push("/witness?case=captured");
+    storeCapturedWitnessCase(window.localStorage, capturedCase);
+    router.push(`/witness?case=${capturedCase.id}`);
   }
 
   return (

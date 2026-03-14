@@ -3,9 +3,12 @@ import { MarketInput, MarketState } from "@/lib/mock-market-state";
 
 import { WitnessCase } from "@/lib/replay/witness-cases";
 
-export const CAPTURED_WITNESS_CASE_STORAGE_KEY =
+const LEGACY_CAPTURED_WITNESS_CASE_STORAGE_KEY =
   "pyth-guard.captured-witness-case";
-const CAPTURED_WITNESS_CASE_ID = "captured-dossier";
+export const CAPTURED_WITNESS_DOCKET_STORAGE_KEY =
+  "pyth-guard.captured-witness-docket";
+const CAPTURED_WITNESS_CASE_ID_PREFIX = "captured-dossier";
+const MAX_CAPTURED_WITNESS_CASES = 6;
 
 type CapturedWitnessCaseOptions = {
   input: MarketInput;
@@ -22,6 +25,10 @@ function formatCurrency(value: number) {
     currency: "USD",
     maximumFractionDigits: 0,
   }).format(value);
+}
+
+function createCapturedCaseId() {
+  return `${CAPTURED_WITNESS_CASE_ID_PREFIX}-${Date.now().toString(36)}`;
 }
 
 function toTitle(intent: string, asset: string) {
@@ -125,8 +132,10 @@ export function buildCapturedWitnessCase({
   intent,
   orderSize,
 }: CapturedWitnessCaseOptions): WitnessCase {
+  const capturedAtIso = new Date().toISOString();
+
   return {
-    id: CAPTURED_WITNESS_CASE_ID,
+    id: createCapturedCaseId(),
     title: toTitle(intent, state.asset),
     subtitle: toSubtitle(status, source),
     defendant: `${intent} ${state.asset} Ticket`,
@@ -144,31 +153,93 @@ export function buildCapturedWitnessCase({
       status,
       intent,
       orderSize,
-      capturedAtIso: new Date().toISOString(),
+      capturedAtIso,
     },
   };
 }
 
-export function parseCapturedWitnessCase(raw: string | null) {
+function isValidWitnessCase(value: unknown): value is WitnessCase {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  const candidate = value as WitnessCase;
+
+  return (
+    typeof candidate.id === "string" &&
+    typeof candidate.title === "string" &&
+    typeof candidate.subtitle === "string" &&
+    typeof candidate.defendant === "string" &&
+    typeof candidate.charge === "string" &&
+    typeof candidate.verdict === "string" &&
+    typeof candidate.recommendedAction === "string" &&
+    Array.isArray(candidate.timeline) &&
+    Array.isArray(candidate.evidenceSummary) &&
+    Array.isArray(candidate.lines)
+  );
+}
+
+function parseCapturedWitnessCase(raw: string | null) {
   if (!raw) return null;
 
   try {
-    const parsed = JSON.parse(raw) as WitnessCase;
-
-    if (
-      typeof parsed !== "object" ||
-      parsed === null ||
-      parsed.id !== CAPTURED_WITNESS_CASE_ID ||
-      typeof parsed.title !== "string" ||
-      !Array.isArray(parsed.timeline) ||
-      !Array.isArray(parsed.evidenceSummary) ||
-      !Array.isArray(parsed.lines)
-    ) {
-      return null;
-    }
-
-    return parsed;
+    const parsed = JSON.parse(raw) as unknown;
+    return isValidWitnessCase(parsed) ? parsed : null;
   } catch {
     return null;
   }
+}
+
+function parseCapturedWitnessDocket(raw: string | null) {
+  if (!raw) return [];
+
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed.filter(isValidWitnessCase).slice(0, MAX_CAPTURED_WITNESS_CASES);
+  } catch {
+    return [];
+  }
+}
+
+export function readCapturedWitnessCases(storage: Storage) {
+  const docket = parseCapturedWitnessDocket(
+    storage.getItem(CAPTURED_WITNESS_DOCKET_STORAGE_KEY),
+  );
+
+  if (docket.length > 0) {
+    return docket;
+  }
+
+  const legacyCase = parseCapturedWitnessCase(
+    storage.getItem(LEGACY_CAPTURED_WITNESS_CASE_STORAGE_KEY),
+  );
+
+  return legacyCase ? [legacyCase] : [];
+}
+
+export function storeCapturedWitnessCase(
+  storage: Storage,
+  capturedCase: WitnessCase,
+) {
+  const nextDocket = [
+    capturedCase,
+    ...readCapturedWitnessCases(storage).filter((item) => item.id !== capturedCase.id),
+  ].slice(0, MAX_CAPTURED_WITNESS_CASES);
+
+  storage.setItem(
+    CAPTURED_WITNESS_DOCKET_STORAGE_KEY,
+    JSON.stringify(nextDocket),
+  );
+  storage.removeItem(LEGACY_CAPTURED_WITNESS_CASE_STORAGE_KEY);
+
+  return nextDocket;
+}
+
+export function clearCapturedWitnessCases(storage: Storage) {
+  storage.removeItem(CAPTURED_WITNESS_DOCKET_STORAGE_KEY);
+  storage.removeItem(LEGACY_CAPTURED_WITNESS_CASE_STORAGE_KEY);
 }

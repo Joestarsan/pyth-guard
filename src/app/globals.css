@@ -843,6 +843,11 @@ textarea {
   text-transform: uppercase;
 }
 
+.modeActionButton.subtle {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
 .timelineStrip {
   align-items: end;
   gap: 10px;
@@ -1039,6 +1044,26 @@ textarea {
 .caseList {
   display: grid;
   gap: 12px;
+}
+
+.caseRailTools {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.caseCountTag {
+  padding: 7px 10px;
+  border: 1px solid rgba(176, 108, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(176, 108, 255, 0.08);
+  color: rgba(239, 227, 255, 0.82);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 .caseCard {
