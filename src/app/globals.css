@@ -1,17 +1,17 @@
 :root {
   --font-heading: "Space Grotesk", "Trebuchet MS", sans-serif;
   --font-mono: "IBM Plex Mono", "SFMono-Regular", "SF Mono", monospace;
-  --void: #090611;
-  --surface: rgba(16, 11, 28, 0.8);
-  --surface-strong: rgba(22, 15, 37, 0.94);
+  --void: #07030f;
+  --surface: rgba(18, 10, 36, 0.84);
+  --surface-strong: rgba(25, 14, 46, 0.96);
   --surface-soft: rgba(255, 255, 255, 0.04);
-  --border: rgba(180, 134, 255, 0.22);
-  --text: #f5f3ff;
-  --muted: rgba(245, 243, 255, 0.68);
-  --pyth-violet: #8b5cf6;
-  --electric-purple: #a855f7;
-  --signal-magenta: #d946ef;
-  --witness-cyan: #22d3ee;
+  --border: rgba(165, 119, 255, 0.28);
+  --text: #f7f3ff;
+  --muted: rgba(238, 229, 255, 0.7);
+  --pyth-violet: #8f5bff;
+  --electric-purple: #b06cff;
+  --signal-magenta: #d56aff;
+  --witness-cyan: #7b7fff;
   --evidence-gold: #f59e0b;
   --danger-coral: #fb7185;
   --verdict-mint: #34d399;
@@ -30,10 +30,10 @@ body {
   margin: 0;
   min-height: 100vh;
   background:
-    radial-gradient(circle at 20% 10%, rgba(139, 92, 246, 0.24), transparent 24%),
-    radial-gradient(circle at 80% 15%, rgba(217, 70, 239, 0.18), transparent 18%),
-    radial-gradient(circle at 50% 100%, rgba(34, 211, 238, 0.12), transparent 25%),
-    linear-gradient(180deg, #080510 0%, #0a0614 40%, #05030a 100%);
+    radial-gradient(circle at 16% 10%, rgba(143, 91, 255, 0.28), transparent 26%),
+    radial-gradient(circle at 84% 12%, rgba(213, 106, 255, 0.18), transparent 20%),
+    radial-gradient(circle at 50% 100%, rgba(123, 127, 255, 0.12), transparent 24%),
+    linear-gradient(180deg, #06030d 0%, #0a0515 42%, #04020a 100%);
   color: var(--text);
   font-family: var(--font-heading), sans-serif;
 }
@@ -93,7 +93,7 @@ textarea {
   left: 8%;
   width: 460px;
   height: 460px;
-  background: rgba(139, 92, 246, 0.22);
+  background: rgba(143, 91, 255, 0.24);
 }
 
 .pageGlowBottom {
@@ -101,7 +101,7 @@ textarea {
   bottom: -120px;
   width: 420px;
   height: 420px;
-  background: rgba(34, 211, 238, 0.14);
+  background: rgba(123, 127, 255, 0.14);
 }
 
 .heroFrame {
@@ -115,7 +115,7 @@ textarea {
   border: 1px solid var(--border);
   border-radius: 32px;
   background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.015)),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.015)),
     rgba(7, 5, 14, 0.8);
   box-shadow: var(--shadow-strong);
   backdrop-filter: blur(24px);
@@ -167,12 +167,27 @@ textarea {
   align-items: flex-start;
 }
 
+.heroBrandRow {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
 .heroHeader h1 {
   max-width: 760px;
   margin: 6px 0 0;
   font-size: clamp(2.4rem, 6vw, 5.2rem);
   line-height: 0.92;
   letter-spacing: -0.06em;
+}
+
+.heroLead {
+  max-width: 54ch;
+  margin: 18px 0 0;
+  color: var(--muted);
+  font-size: 1.04rem;
+  line-height: 1.65;
 }
 
 .topKicker,
@@ -190,6 +205,53 @@ textarea {
   color: var(--witness-cyan);
   font-size: 0.76rem;
   letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.pythBrand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 22px;
+  background: linear-gradient(135deg, rgba(143, 91, 255, 0.08), rgba(255, 255, 255, 0.03));
+}
+
+.pythBrandText {
+  display: grid;
+  gap: 6px;
+}
+
+.pythBrandLabel {
+  color: var(--muted);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.pythBrandLogo {
+  display: block;
+  width: min(190px, 44vw);
+  height: auto;
+}
+
+.heroSignalStrip {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.heroSignalChip {
+  padding: 9px 12px;
+  border: 1px solid rgba(176, 108, 255, 0.16);
+  border-radius: 999px;
+  background: rgba(176, 108, 255, 0.08);
+  color: rgba(239, 227, 255, 0.82);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
@@ -221,11 +283,17 @@ textarea {
   color: var(--muted);
 }
 
-.assetBadge.subtle.sourcepyth-pro {
+.assetBadge.subtle.sourcepyth-pro,
+.assetBadge.subtle.statuslive {
   color: var(--verdict-mint);
 }
 
-.assetBadge.subtle.sourcemock {
+.assetBadge.subtle.statuswarming {
+  color: var(--witness-cyan);
+}
+
+.assetBadge.subtle.sourcemock,
+.assetBadge.subtle.statusfallback {
   color: var(--evidence-gold);
 }
 
@@ -271,6 +339,10 @@ textarea {
   min-height: 600px;
   padding: 28px;
   border-radius: 28px;
+  background:
+    radial-gradient(circle at 50% 28%, rgba(143, 91, 255, 0.18), transparent 26%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.015)),
+    var(--surface);
 }
 
 .panelHeader {
@@ -301,6 +373,11 @@ textarea {
   font-weight: 700;
 }
 
+.fieldHint {
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
 .assetSwitch {
   display: flex;
   gap: 10px;
@@ -319,8 +396,8 @@ textarea {
 }
 
 .assetSwitchButton.active {
-  border-color: rgba(34, 211, 238, 0.35);
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.26), rgba(34, 211, 238, 0.12));
+  border-color: rgba(176, 108, 255, 0.42);
+  background: linear-gradient(135deg, rgba(143, 91, 255, 0.3), rgba(213, 106, 255, 0.14));
 }
 
 .actionGrid {
@@ -332,11 +409,44 @@ textarea {
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.03);
   color: var(--text);
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    background 160ms ease;
 }
 
 .actionChip.active {
   background: linear-gradient(135deg, var(--pyth-violet), var(--signal-magenta));
   border-color: transparent;
+  transform: translateY(-1px);
+}
+
+.sizeSlider {
+  width: 100%;
+  appearance: none;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(143, 91, 255, 0.82), rgba(213, 106, 255, 0.4));
+  outline: none;
+}
+
+.sizeSlider::-webkit-slider-thumb {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.86);
+  border-radius: 50%;
+  background: var(--pyth-violet);
+  box-shadow: 0 0 0 4px rgba(143, 91, 255, 0.18);
+}
+
+.sizeSlider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.86);
+  border-radius: 50%;
+  background: var(--pyth-violet);
+  box-shadow: 0 0 0 4px rgba(143, 91, 255, 0.18);
 }
 
 .flagStack {
@@ -361,21 +471,37 @@ textarea {
 
 .dialAura {
   position: absolute;
-  inset: 15% 20%;
+  inset: 11% 18%;
   border-radius: 50%;
   background:
-    radial-gradient(circle, rgba(139, 92, 246, 0.22), transparent 55%),
-    radial-gradient(circle at 60% 40%, rgba(34, 211, 238, 0.1), transparent 45%);
+    radial-gradient(circle, rgba(143, 91, 255, 0.3), transparent 56%),
+    radial-gradient(circle at 60% 40%, rgba(213, 106, 255, 0.14), transparent 45%);
   filter: blur(10px);
   animation: pulseAura 6s ease-in-out infinite;
+}
+
+.dialStage {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 18px;
+  height: 100%;
+}
+
+.dialCore {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 380px;
+  padding: 16px;
 }
 
 .dialSvg {
   position: absolute;
   inset: 50%;
-  width: min(560px, 90%);
+  width: min(440px, 84%);
   height: auto;
-  transform: translate(-50%, -54%) rotate(-96deg);
+  transform: translate(-50%, -52%) rotate(-96deg);
 }
 
 .dialTrack,
@@ -389,25 +515,38 @@ textarea {
 }
 
 .dialValue {
-  stroke: url(#trustGradient);
   stroke: var(--signal-magenta);
   stroke-linecap: round;
-  filter: drop-shadow(0 0 16px rgba(217, 70, 239, 0.45));
+  filter: drop-shadow(0 0 18px rgba(213, 106, 255, 0.46));
+}
+
+.dialCoreShell {
+  position: absolute;
+  width: min(310px, 62%);
+  aspect-ratio: 1;
+  border: 1px solid rgba(176, 108, 255, 0.14);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 40%, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.01) 55%),
+    radial-gradient(circle at 50% 70%, rgba(143, 91, 255, 0.18), transparent 65%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 20px 60px rgba(79, 32, 155, 0.28);
 }
 
 .dialContent {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   display: grid;
   justify-items: center;
-  gap: 12px;
-  max-width: 520px;
-  margin: 92px auto 0;
+  gap: 10px;
+  max-width: 320px;
+  margin: 0 auto;
   text-align: center;
 }
 
 .dialScore {
-  font-size: clamp(5rem, 14vw, 9rem);
+  font-size: clamp(5rem, 12vw, 7.6rem);
   line-height: 0.9;
   letter-spacing: -0.08em;
 }
@@ -435,19 +574,78 @@ textarea {
   margin: 0;
   padding: 14px 18px;
   border-radius: 16px;
-  background: rgba(251, 113, 133, 0.14);
-  color: var(--danger-coral);
-  font-size: 1.1rem;
+  background: rgba(213, 106, 255, 0.14);
+  color: #f0c7ff;
+  font-size: 1rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
 
+.dialSignalGrid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.dialSignalCard {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.dialSignalLabel,
+.dialSignalDelta {
+  font-family: var(--font-mono), monospace;
+  text-transform: uppercase;
+}
+
+.dialSignalLabel {
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+}
+
+.dialSignalValue {
+  font-size: 1.5rem;
+}
+
+.dialSignalDelta {
+  color: var(--muted);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+}
+
+.dialNarrativeBlock {
+  display: grid;
+  gap: 12px;
+}
+
 .dialNarrative {
-  max-width: 48ch;
   margin: 0;
   color: var(--muted);
   line-height: 1.6;
+}
+
+.dialStatusNote {
+  max-width: 52ch;
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 18px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.dialStatusNote.statuswarming {
+  border: 1px solid rgba(34, 211, 238, 0.16);
+  background: rgba(34, 211, 238, 0.08);
+}
+
+.dialStatusNote.statusfallback {
+  border: 1px solid rgba(245, 158, 11, 0.16);
+  background: rgba(245, 158, 11, 0.08);
 }
 
 .evidenceStack {
@@ -517,7 +715,7 @@ textarea {
 .witnessPanel {
   flex: 0.9;
   background:
-    linear-gradient(135deg, rgba(139, 92, 246, 0.22), rgba(217, 70, 239, 0.08)),
+    linear-gradient(135deg, rgba(143, 91, 255, 0.24), rgba(213, 106, 255, 0.08)),
     var(--surface-strong);
 }
 
@@ -569,6 +767,30 @@ textarea {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.policySummary {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.policySummary span {
+  padding: 9px 12px;
+  border: 1px solid rgba(176, 108, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(176, 108, 255, 0.07);
+  color: rgba(239, 227, 255, 0.82);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.policyIntentBadge {
+  color: var(--text) !important;
+  background: linear-gradient(135deg, rgba(143, 91, 255, 0.28), rgba(213, 106, 255, 0.14)) !important;
+}
+
 .policyMetric {
   display: grid;
   gap: 8px;
@@ -589,6 +811,24 @@ textarea {
 .policyMetric strong {
   font-size: 1.12rem;
   text-transform: capitalize;
+}
+
+.policyNotice {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 18px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.policyNotice.statuswarming {
+  border: 1px solid rgba(34, 211, 238, 0.16);
+  background: rgba(34, 211, 238, 0.08);
+}
+
+.policyNotice.statusfallback {
+  border: 1px solid rgba(245, 158, 11, 0.16);
+  background: rgba(245, 158, 11, 0.08);
 }
 
 .timelineBarWrap {
@@ -875,7 +1115,12 @@ textarea {
     justify-content: flex-start;
   }
 
-  .dialContent {
-    margin-top: 80px;
+  .dialCore {
+    min-height: 320px;
+  }
+
+  .dialSignalGrid,
+  .policyGrid {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

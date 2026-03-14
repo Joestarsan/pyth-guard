@@ -5,11 +5,18 @@ export type SubscriptionParams = {
   intervalMs?: number;
 };
 
+export type MarketSource = "pyth-pro" | "mock";
+
+export type MarketStreamStatus = "live" | "warming" | "fallback";
+
 export type MarketUpdate = {
   frameIndex: number;
   input: MarketInput;
-  source: "pyth-pro" | "mock";
+  source: MarketSource;
+  status: MarketStreamStatus;
   notice?: string;
+  baselineSamples?: number;
+  baselineTarget?: number;
 };
 
 export type Unsubscribe = () => void;

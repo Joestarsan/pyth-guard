@@ -1,4 +1,4 @@
-import { MarketDataProvider, SubscriptionParams } from "@/lib/market-data/types";
+import { MarketDataProvider, MarketUpdate, SubscriptionParams } from "@/lib/market-data/types";
 
 export class ApiMarketProvider implements MarketDataProvider {
   subscribe(
@@ -20,12 +20,7 @@ export class ApiMarketProvider implements MarketDataProvider {
           throw new Error(`Failed to load live market data (${response.status})`);
         }
 
-        const payload = (await response.json()) as {
-          frameIndex: number;
-          input: Parameters<Parameters<MarketDataProvider["subscribe"]>[1]>[0]["input"];
-          source: "pyth-pro" | "mock";
-          notice?: string;
-        };
+        const payload = (await response.json()) as MarketUpdate;
 
         if (!aborted) {
           onUpdate(payload);

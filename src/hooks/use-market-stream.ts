@@ -2,9 +2,15 @@
 
 import { useEffect, useState } from "react";
 
-import { MarketDataProvider } from "@/lib/market-data/types";
+import {
+  MarketDataProvider,
+  MarketSource,
+  MarketStreamStatus,
+} from "@/lib/market-data/types";
 import { MarketState } from "@/lib/mock-market-state";
 import { computeMarketState } from "@/lib/trust-engine";
+
+const DEFAULT_SEED_TIMELINE = [86, 84, 83, 82, 84, 86];
 
 type UseMarketStreamOptions = {
   asset?: string;
@@ -16,21 +22,43 @@ type UseMarketStreamOptions = {
 export function useMarketStream({
   asset,
   provider,
-  seedTimeline = [86, 84, 83, 82, 84, 86],
+  seedTimeline = DEFAULT_SEED_TIMELINE,
   intervalMs,
 }: UseMarketStreamOptions) {
   const [frameIndex, setFrameIndex] = useState(0);
   const [state, setState] = useState<MarketState | null>(null);
-  const [source, setSource] = useState<"pyth-pro" | "mock">("mock");
+  const [source, setSource] = useState<MarketSource>("mock");
+  const [status, setStatus] = useState<MarketStreamStatus>("warming");
   const [notice, setNotice] = useState<string | undefined>();
+  const [baselineSamples, setBaselineSamples] = useState<number | undefined>();
+  const [baselineTarget, setBaselineTarget] = useState<number | undefined>();
 
   useEffect(() => {
+    setFrameIndex(0);
+    setState(null);
+    setSource("mock");
+    setStatus("warming");
+    setNotice(undefined);
+    setBaselineSamples(undefined);
+    setBaselineTarget(undefined);
+
     const unsubscribe = provider.subscribe(
       { asset, intervalMs },
-      ({ frameIndex: nextFrameIndex, input, source: nextSource, notice: nextNotice }) => {
+      ({
+        frameIndex: nextFrameIndex,
+        input,
+        source: nextSource,
+        status: nextStatus,
+        notice: nextNotice,
+        baselineSamples: nextBaselineSamples,
+        baselineTarget: nextBaselineTarget,
+      }) => {
         setFrameIndex(nextFrameIndex);
         setSource(nextSource);
+        setStatus(nextStatus);
         setNotice(nextNotice);
+        setBaselineSamples(nextBaselineSamples);
+        setBaselineTarget(nextBaselineTarget);
         setState((current) => {
           const nextTimeline =
             current === null
@@ -45,5 +73,13 @@ export function useMarketStream({
     return unsubscribe;
   }, [asset, intervalMs, provider, seedTimeline]);
 
-  return { frameIndex, state, source, notice };
+  return {
+    frameIndex,
+    state,
+    source,
+    status,
+    notice,
+    baselineSamples,
+    baselineTarget,
+  };
 }

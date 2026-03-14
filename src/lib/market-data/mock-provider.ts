@@ -17,6 +17,9 @@ export class MockScenarioProvider implements MarketDataProvider {
       frameIndex,
       input: frames[frameIndex],
       source: "mock",
+      status: "fallback",
+      baselineSamples: 0,
+      baselineTarget: 6,
       notice: "Using local scenario provider.",
     });
 
@@ -26,6 +29,9 @@ export class MockScenarioProvider implements MarketDataProvider {
         frameIndex,
         input: frames[frameIndex],
         source: "mock",
+        status: "fallback",
+        baselineSamples: 0,
+        baselineTarget: 6,
         notice: "Using local scenario provider.",
       });
     }, intervalMs);

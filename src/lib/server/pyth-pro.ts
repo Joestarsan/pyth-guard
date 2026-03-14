@@ -2,6 +2,8 @@ import { PythLazerClient, SymbolResponse } from "@pythnetwork/pyth-lazer-sdk";
 
 import { MarketInput, mockScenarioFrames } from "@/lib/mock-market-state";
 
+const BASELINE_TARGET = 6;
+
 type AssetKey = "BTC / USD" | "ETH / USD" | "SPY / USD";
 
 type AssetConfig = {
@@ -80,6 +82,48 @@ function pushWindow(values: number[], value: number, max = 20) {
   return [...values, value].slice(-max);
 }
 
+function formatFallbackNotice(message: string) {
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes("pyth_pro_token is missing")) {
+    return "Mock fallback active. Set PYTH_PRO_TOKEN to enable live Pyth Pro access.";
+  }
+
+  if (
+    normalized.includes("insufficient access") ||
+    normalized.includes("allowed types") ||
+    normalized.includes("not in allowed types")
+  ) {
+    return "Mock fallback active. This key can discover symbols, but latest-price entitlements are not enabled yet.";
+  }
+
+  if (normalized.includes("incomplete parsed payload")) {
+    return "Mock fallback active. Pyth Pro returned an incomplete live payload.";
+  }
+
+  return "Mock fallback active. Pyth Pro live data is temporarily unavailable.";
+}
+
+function formatLiveNotice(
+  assetKey: AssetKey,
+  baselineSamples: number,
+  isBaselineReady: boolean,
+) {
+  const notices = ["Live Pyth Pro feed active."];
+
+  if (!isBaselineReady) {
+    notices.push(
+      `Baseline warming ${baselineSamples}/${BASELINE_TARGET}. Guard is still calibrating normal conditions.`,
+    );
+  }
+
+  if (assetKey === "SPY / USD") {
+    notices.push("Session state is currently inferred from symbol metadata.");
+  }
+
+  return notices.join(" ");
+}
+
 function deriveSession(
   assetKey: AssetKey,
   metadata: SymbolResponse | null,
@@ -139,6 +183,9 @@ function getMockFallback(assetKey: AssetKey, notice: string) {
     frameIndex,
     input: remappedAsset,
     source: "mock" as const,
+    status: "fallback" as const,
+    baselineSamples: 0,
+    baselineTarget: BASELINE_TARGET,
     notice,
   };
 }
@@ -202,6 +249,8 @@ export async function getLiveMarketSnapshot(asset: string) {
       spreadRatios: pushWindow(existing.spreadRatios, spreadRatio),
       publisherCounts: pushWindow(existing.publisherCounts, publisherCount),
     };
+    const baselineSamples = nextBaseline.prices.length;
+    const isBaselineReady = baselineSamples >= BASELINE_TARGET;
 
     baselineCache.set(assetKey, nextBaseline);
 
@@ -221,19 +270,16 @@ export async function getLiveMarketSnapshot(asset: string) {
     };
 
     return {
-      frameIndex: 0,
+      frameIndex: baselineSamples - 1,
       input,
       source: "pyth-pro" as const,
-      notice:
-        assetKey === "SPY / USD"
-          ? "Session handling is currently derived from metadata while we wire a richer market-session model."
-          : "Live Pyth Pro feed active.",
+      status: isBaselineReady ? ("live" as const) : ("warming" as const),
+      baselineSamples,
+      baselineTarget: BASELINE_TARGET,
+      notice: formatLiveNotice(assetKey, baselineSamples, isBaselineReady),
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    return getMockFallback(
-      assetKey,
-      `Using mock fallback. Pyth Pro is configured but not yet readable with this key: ${message}`,
-    );
+    return getMockFallback(assetKey, formatFallbackNotice(message));
   }
 }
