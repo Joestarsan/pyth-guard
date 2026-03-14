@@ -31,6 +31,10 @@ function formatCurrency(value: number) {
   return currencyFormatter.format(value);
 }
 
+function getExhibitLabel(index: number) {
+  return `Exhibit ${String.fromCharCode(65 + index)}`;
+}
+
 export function GuardDashboard() {
   const [asset, setAsset] = useState<SupportedAsset>("BTC / USD");
   const [intent, setIntent] = useState<(typeof quickActions)[number]>("Long");
@@ -168,25 +172,35 @@ export function GuardDashboard() {
             </div>
           </aside>
 
-          <TrustDial
-            state={state}
-            status={status}
-            baselineSamples={baselineSamples}
-            baselineTarget={baselineTarget}
-          />
+          <div className="stageColumn">
+            <TrustDial
+              state={state}
+              status={status}
+              baselineSamples={baselineSamples}
+              baselineTarget={baselineTarget}
+            />
 
-          <aside className="evidencePanel">
-            <div className="panelHeader">
-              <span className="panelEyebrow">Evidence Stack</span>
-              <strong>What Pyth Sees</strong>
-            </div>
+            <section className="evidencePanel evidenceDeck">
+              <div className="panelHeader">
+                <span className="panelEyebrow">Exhibit Rail</span>
+                <strong>What Pyth Is Arguing</strong>
+              </div>
+              <p className="evidenceLead">
+                Each exhibit shows the signal that is pushing Guard toward
+                conviction or restraint.
+              </p>
 
-            <div className="evidenceStack">
-              {state.evidence.map((item) => (
-                <EvidenceCard key={item.label} item={item} />
-              ))}
-            </div>
-          </aside>
+              <div className="evidenceStack evidenceRail">
+                {state.evidence.map((item, index) => (
+                  <EvidenceCard
+                    key={item.label}
+                    item={item}
+                    eyebrow={getExhibitLabel(index)}
+                  />
+                ))}
+              </div>
+            </section>
+          </div>
         </section>
 
         <section className="lowerGrid">
@@ -198,14 +212,6 @@ export function GuardDashboard() {
             intent={intent}
             orderSize={orderSize}
           />
-
-          <article className="timelinePanel">
-            <div className="panelHeader">
-              <span className="panelEyebrow">Market Health Tape</span>
-              <strong>Trust Degradation Loop</strong>
-            </div>
-            <TimelineStrip values={state.timeline} />
-          </article>
 
           <article className="witnessPanel">
             <div className="panelHeader">
@@ -222,6 +228,14 @@ export function GuardDashboard() {
                 Enter Trial Mode
               </Link>
             </div>
+          </article>
+
+          <article className="timelinePanel">
+            <div className="panelHeader">
+              <span className="panelEyebrow">Market Health Tape</span>
+              <strong>Trust Degradation Loop</strong>
+            </div>
+            <TimelineStrip values={state.timeline} />
           </article>
         </section>
       </section>

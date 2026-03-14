@@ -3,9 +3,14 @@
 import { useState } from "react";
 
 import { EvidenceCard } from "@/components/evidence-card";
+import { PythBrand } from "@/components/pyth-brand";
 import { TimelineStrip } from "@/components/timeline-strip";
 import { witnessCases } from "@/lib/replay/witness-cases";
 import { computeMarketState } from "@/lib/trust-engine";
+
+function getWitnessExhibitLabel(index: number) {
+  return `Case Exhibit ${index + 1}`;
+}
 
 export function WitnessBoard() {
   const [selectedCaseId, setSelectedCaseId] = useState(witnessCases[0].id);
@@ -17,6 +22,14 @@ export function WitnessBoard() {
     <section className="witnessShell">
       <header className="witnessHero">
         <div>
+          <div className="heroBrandRow">
+            <PythBrand />
+            <div className="heroSignalStrip" aria-label="Trial context">
+              <span className="heroSignalChip">Forensic Replay</span>
+              <span className="heroSignalChip">Execution Evidence</span>
+              <span className="heroSignalChip">Courtroom Mode</span>
+            </div>
+          </div>
           <span className="topKicker">Market Witness</span>
           <h1>Put the trade on trial.</h1>
           <p className="witnessHeroCopy">
@@ -113,22 +126,31 @@ export function WitnessBoard() {
             </div>
             <TimelineStrip values={caseState.timeline} />
           </div>
+
+          <div className="witnessExhibitPanel">
+            <div className="panelHeader">
+              <span className="panelEyebrow">Exhibits</span>
+              <strong>Pyth Evidence</strong>
+            </div>
+            <div className="witnessSealRow">
+              <p className="witnessExhibitCopy">
+                These exhibits reconstruct the market quality that existed at
+                the moment the trade was taken.
+              </p>
+              <div className="witnessStamp objection">OBJECTION</div>
+            </div>
+
+            <div className="evidenceStack evidenceRail">
+              {caseState.evidence.map((item, index) => (
+                <EvidenceCard
+                  key={item.label}
+                  item={item}
+                  eyebrow={getWitnessExhibitLabel(index)}
+                />
+              ))}
+            </div>
+          </div>
         </section>
-
-        <aside className="witnessEvidencePanel">
-          <div className="panelHeader">
-            <span className="panelEyebrow">Exhibits</span>
-            <strong>Pyth Evidence</strong>
-          </div>
-
-          <div className="evidenceStack">
-            {caseState.evidence.map((item) => (
-              <EvidenceCard key={item.label} item={item} />
-            ))}
-          </div>
-
-          <div className="witnessStamp objection">OBJECTION</div>
-        </aside>
       </section>
     </section>
   );

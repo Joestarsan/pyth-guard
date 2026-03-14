@@ -63,6 +63,7 @@ textarea {
   border-radius: 999px;
   background: rgba(12, 8, 21, 0.82);
   backdrop-filter: blur(18px);
+  animation: revealUp 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .modeLink {
@@ -119,6 +120,7 @@ textarea {
     rgba(7, 5, 14, 0.8);
   box-shadow: var(--shadow-strong);
   backdrop-filter: blur(24px);
+  animation: revealUp 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .heroHeader,
@@ -298,6 +300,8 @@ textarea {
 }
 
 .mainGrid {
+  display: grid;
+  grid-template-columns: minmax(260px, 310px) minmax(0, 1fr);
   align-items: stretch;
   gap: 20px;
 }
@@ -315,11 +319,30 @@ textarea {
     linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.015)),
     var(--surface);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition:
+    transform 220ms ease,
+    border-color 220ms ease,
+    box-shadow 220ms ease;
 }
 
-.intentPanel,
-.evidencePanel {
-  width: min(100%, 320px);
+.intentPanel:hover,
+.evidencePanel:hover,
+.policyCard:hover,
+.timelinePanel:hover,
+.witnessPanel:hover,
+.trustDial:hover,
+.verdictPanel:hover,
+.witnessScorePanel:hover,
+.reasoningPanel:hover,
+.transcriptPanel:hover,
+.witnessTimelinePanel:hover,
+.witnessExhibitPanel:hover,
+.caseRail:hover {
+  border-color: rgba(176, 108, 255, 0.34);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 20px 60px rgba(18, 8, 39, 0.28);
+  transform: translateY(-2px);
 }
 
 .intentPanel,
@@ -333,6 +356,22 @@ textarea {
   border-radius: 24px;
 }
 
+.intentPanel {
+  align-self: start;
+  animation: revealUp 620ms cubic-bezier(0.22, 1, 0.36, 1) 70ms both;
+}
+
+.stageColumn {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+
+.evidenceDeck {
+  width: 100%;
+  animation: revealUp 620ms cubic-bezier(0.22, 1, 0.36, 1) 160ms both;
+}
+
 .trustDial {
   isolation: isolate;
   flex: 1;
@@ -343,6 +382,7 @@ textarea {
     radial-gradient(circle at 50% 28%, rgba(143, 91, 255, 0.18), transparent 26%),
     linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.015)),
     var(--surface);
+  animation: revealUp 620ms cubic-bezier(0.22, 1, 0.36, 1) 120ms both;
 }
 
 .panelHeader {
@@ -351,6 +391,13 @@ textarea {
 
 .panelHeader strong {
   font-size: 1.1rem;
+}
+
+.evidenceLead {
+  max-width: 64ch;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.65;
 }
 
 .field {
@@ -653,16 +700,40 @@ textarea {
   gap: 12px;
 }
 
+.evidenceRail {
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
 .evidenceCard {
   display: grid;
   gap: 12px;
   padding: 16px;
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.04);
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease;
+}
+
+.evidenceCard:hover,
+.dialSignalCard:hover,
+.caseCard:hover,
+.transcriptLine:hover,
+.reasoningItem:hover {
+  transform: translateY(-2px);
 }
 
 .evidenceHeader {
   align-items: baseline;
+}
+
+.evidenceEyebrow {
+  color: var(--witness-cyan);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
 }
 
 .evidenceLabel {
@@ -700,23 +771,28 @@ textarea {
 }
 
 .lowerGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
   align-items: stretch;
   gap: 20px;
 }
 
 .timelinePanel {
-  flex: 1.25;
+  grid-column: 1 / -1;
+  animation: revealUp 620ms cubic-bezier(0.22, 1, 0.36, 1) 280ms both;
 }
 
 .policyCard {
-  flex: 1;
+  min-width: 0;
+  animation: revealUp 620ms cubic-bezier(0.22, 1, 0.36, 1) 190ms both;
 }
 
 .witnessPanel {
-  flex: 0.9;
+  min-width: 0;
   background:
     linear-gradient(135deg, rgba(143, 91, 255, 0.24), rgba(213, 106, 255, 0.08)),
     var(--surface-strong);
+  animation: revealUp 620ms cubic-bezier(0.22, 1, 0.36, 1) 240ms both;
 }
 
 .witnessPanel p {
@@ -867,6 +943,7 @@ textarea {
     rgba(7, 5, 14, 0.8);
   box-shadow: var(--shadow-strong);
   backdrop-filter: blur(24px);
+  animation: revealUp 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .witnessHero {
@@ -892,18 +969,18 @@ textarea {
 
 .witnessLayout {
   display: grid;
-  grid-template-columns: minmax(240px, 290px) minmax(0, 1fr) minmax(260px, 330px);
+  grid-template-columns: minmax(240px, 290px) minmax(0, 1fr);
   gap: 20px;
 }
 
 .caseRail,
 .witnessStage,
-.witnessEvidencePanel,
 .verdictPanel,
 .witnessScorePanel,
 .reasoningPanel,
 .transcriptPanel,
-.witnessTimelinePanel {
+.witnessTimelinePanel,
+.witnessExhibitPanel {
   border: 1px solid var(--border);
   border-radius: 24px;
   background:
@@ -912,18 +989,19 @@ textarea {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
-.caseRail,
-.witnessEvidencePanel {
+.caseRail {
   display: grid;
   gap: 18px;
   align-self: start;
   padding: 22px;
+  animation: revealUp 620ms cubic-bezier(0.22, 1, 0.36, 1) 80ms both;
 }
 
 .witnessStage {
   display: grid;
   gap: 18px;
   padding: 22px;
+  animation: revealUp 620ms cubic-bezier(0.22, 1, 0.36, 1) 150ms both;
 }
 
 .witnessStageTop {
@@ -936,8 +1014,14 @@ textarea {
 .witnessScorePanel,
 .reasoningPanel,
 .transcriptPanel,
-.witnessTimelinePanel {
+.witnessTimelinePanel,
+.witnessExhibitPanel {
   padding: 18px;
+}
+
+.witnessExhibitPanel {
+  display: grid;
+  gap: 16px;
 }
 
 .caseList {
@@ -1060,6 +1144,32 @@ textarea {
   margin-top: 10px;
 }
 
+.witnessSealRow {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.witnessExhibitCopy {
+  max-width: 52ch;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+@keyframes revealUp {
+  0% {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @keyframes pulseAura {
   0%,
   100% {
@@ -1073,11 +1183,14 @@ textarea {
 }
 
 @media (max-width: 1180px) {
-  .mainGrid,
-  .lowerGrid,
   .witnessLayout,
   .witnessStageTop {
     flex-direction: column;
+  }
+
+  .mainGrid,
+  .lowerGrid {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .witnessLayout,
@@ -1085,9 +1198,8 @@ textarea {
     display: flex;
   }
 
-  .intentPanel,
-  .evidencePanel {
-    width: 100%;
+  .witnessSealRow {
+    align-items: flex-start;
   }
 
   .trustDial {
