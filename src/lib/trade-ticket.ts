@@ -18,6 +18,8 @@ export type CourtroomLine = {
 export type TradeAssessment = {
   intent: TradeIntent;
   orderSize: number;
+  leverage: number;
+  leveragePenalty: number;
   entryPrice: number;
   referencePrice: number;
   marketPrice: number;
@@ -104,18 +106,26 @@ function getIntentPenalty(intent: TradeIntent, marketRiskLevel: RiskLevel) {
   if (intent === "Long") {
     if (marketRiskLevel === "Safe") return 0;
     if (marketRiskLevel === "Caution") return 12;
-    return 26;
+    return 28;
   }
 
   if (intent === "Short") {
-    if (marketRiskLevel === "Safe") return 10;
+    if (marketRiskLevel === "Safe") return 24;
     if (marketRiskLevel === "Caution") return 8;
-    return 12;
+    return 0;
   }
 
   if (marketRiskLevel === "Safe") return 6;
   if (marketRiskLevel === "Caution") return -6;
   return -14;
+}
+
+function getLeveragePenalty(leverage: number, marketRiskLevel: RiskLevel) {
+  if (leverage <= 3) return 0;
+  if (leverage <= 5) return marketRiskLevel === "Safe" ? 2 : 4;
+  if (leverage <= 10) return marketRiskLevel === "Safe" ? 6 : 10;
+  if (leverage <= 20) return marketRiskLevel === "Safe" ? 12 : 18;
+  return marketRiskLevel === "Safe" ? 20 : 28;
 }
 
 function getIntentLabel(intent: TradeIntent, marketRiskLevel: RiskLevel) {
@@ -185,6 +195,7 @@ function buildSummary(
   state: MarketState,
   sizeRatio: number,
   distanceBps: number,
+  leverage: number,
 ) {
   if (intent === "Exit") {
     if (score >= 78) {
@@ -213,7 +224,9 @@ function buildSummary(
   const priceClause =
     distanceBps > 6
       ? "and the requested entry is chasing the live market"
-      : "even before price slippage is considered";
+      : leverage > 10
+        ? `while ${leverage}x leverage magnifies any mistake`
+        : "even before price slippage is considered";
 
   return `The position is ${sizeClause} ${priceClause}. Pyth Guard would object to opening it in this state.`;
 }
@@ -224,6 +237,7 @@ function buildObjections(
   sizeRatio: number,
   distanceBps: number,
   guardCap: number,
+  leverage: number,
 ) {
   const objections: string[] = [];
 
@@ -236,6 +250,12 @@ function buildObjections(
   if (distanceBps > 6) {
     objections.push(
       `Requested entry is ${distanceBps.toFixed(1)} bps through the live reference price, which turns the order into a chase.`,
+    );
+  }
+
+  if (intent !== "Exit" && leverage > 10) {
+    objections.push(
+      `${leverage}x leverage leaves little room for market structure to be wrong. Guard treats that as aggressive exposure, not routine positioning.`,
     );
   }
 
@@ -271,6 +291,8 @@ function buildEvidence(
   state: MarketState,
   intent: TradeIntent,
   orderSize: number,
+  leverage: number,
+  leveragePenalty: number,
   entryPrice: number,
   guardCap: number,
   sizeRatio: number,
@@ -286,10 +308,20 @@ function buildEvidence(
         ? "neutral"
         : "supporting"
       : state.riskLevel === "Safe"
-        ? "supporting"
+        ? intent === "Short"
+          ? "damaging"
+          : "supporting"
         : intent === "Long"
           ? "damaging"
-          : "neutral";
+          : "supporting";
+  const leverageTrend =
+    intent === "Exit"
+      ? "neutral"
+      : leverage <= 5
+        ? "supporting"
+        : leverage <= 10
+          ? "neutral"
+          : "damaging";
 
   return [
     {
@@ -319,6 +351,13 @@ function buildEvidence(
       note: "Sizing is judged against the live Guard policy envelope, not against the trader's optimism.",
     },
     {
+      label: "Leverage",
+      value: `${leverage}x`,
+      delta: leveragePenalty > 0 ? `-${leveragePenalty} score penalty` : "No leverage objection",
+      trend: leverageTrend,
+      note: "High leverage turns a marginal tape into an unacceptable one much faster.",
+    },
+    {
       label: "Direction Fit",
       value: intent,
       delta: getIntentLabel(intent, state.riskLevel),
@@ -331,6 +370,7 @@ function buildEvidence(
 function buildLines(
   intent: TradeIntent,
   orderSize: number,
+  leverage: number,
   state: MarketState,
   score: number,
   verdict: string,
@@ -346,7 +386,7 @@ function buildLines(
       text:
         intent === "Exit"
           ? `The defendant wants to flatten ${formattedSize} of risk. The court must decide whether this is discipline or panic.`
-          : `The defendant wants to open a ${formattedSize} ${intent.toLowerCase()} ticket. The burden is to prove this entry deserves to be admitted.`,
+          : `The defendant wants to open a ${formattedSize} ${intent.toLowerCase()} ticket at ${leverage}x leverage. The burden is to prove this entry deserves to be admitted.`,
     },
     {
       role: "Defense" as const,
@@ -373,14 +413,19 @@ export function assessTradeTicket({
   state,
   intent,
   orderSize,
+  leverage = 1,
   entryPrice,
 }: {
   input: MarketInput;
   state: MarketState;
   intent: TradeIntent;
   orderSize: number;
+  leverage?: number;
   entryPrice: number;
 }): TradeAssessment {
+  const safeLeverage = Number.isFinite(leverage) && leverage > 0
+    ? Math.min(Math.max(Math.round(leverage), 1), 50)
+    : 1;
   const safeEntryPrice = Number.isFinite(entryPrice) && entryPrice > 0
     ? entryPrice
     : getDefaultEntryPrice(input, intent);
@@ -398,8 +443,18 @@ export function assessTradeTicket({
       ? clamp(distanceBps * 0.12, 0, 10)
       : clamp(distanceBps * 0.34, 0, 26);
   const intentPenalty = getIntentPenalty(intent, state.riskLevel);
+  const leveragePenalty =
+    intent === "Exit" ? 0 : getLeveragePenalty(safeLeverage, state.riskLevel);
   const score = Math.round(
-    clamp(state.trustScore - sizePenalty - pricePenalty - intentPenalty, 0, 100),
+    clamp(
+      state.trustScore -
+        sizePenalty -
+        pricePenalty -
+        intentPenalty -
+        leveragePenalty,
+      0,
+      100,
+    ),
   );
   const riskLevel = getRiskLevel(score);
   const verdict = getVerdict(intent, score);
@@ -415,12 +470,15 @@ export function assessTradeTicket({
     sizeRatio,
     distanceBps,
     guardCap,
+    safeLeverage,
   );
   const evidence = buildEvidence(
     input,
     state,
     intent,
     orderSize,
+    safeLeverage,
+    leveragePenalty,
     safeEntryPrice,
     guardCap,
     sizeRatio,
@@ -431,6 +489,8 @@ export function assessTradeTicket({
   return {
     intent,
     orderSize,
+    leverage: safeLeverage,
+    leveragePenalty,
     entryPrice: safeEntryPrice,
     referencePrice,
     marketPrice: input.price,
@@ -441,12 +501,13 @@ export function assessTradeTicket({
     riskLevel,
     verdict,
     recommendedAction,
-    summary: buildSummary(intent, score, state, sizeRatio, distanceBps),
+    summary: buildSummary(intent, score, state, sizeRatio, distanceBps, safeLeverage),
     objections,
     evidence,
     lines: buildLines(
       intent,
       orderSize,
+      safeLeverage,
       state,
       score,
       verdict,

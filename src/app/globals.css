@@ -30,10 +30,21 @@ body {
   margin: 0;
   min-height: 100vh;
   background:
-    radial-gradient(circle at 16% 10%, rgba(143, 91, 255, 0.28), transparent 26%),
-    radial-gradient(circle at 84% 12%, rgba(213, 106, 255, 0.18), transparent 20%),
-    radial-gradient(circle at 50% 100%, rgba(123, 127, 255, 0.12), transparent 24%),
-    linear-gradient(180deg, #06030d 0%, #0a0515 42%, #04020a 100%);
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.03) 0,
+      rgba(255, 255, 255, 0.03) 1px,
+      transparent 1px,
+      transparent 8px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.03) 0,
+      rgba(255, 255, 255, 0.03) 1px,
+      transparent 1px,
+      transparent 8px
+    ),
+    linear-gradient(180deg, #05020b 0%, #090412 52%, #04020a 100%);
   color: var(--text);
   font-family: var(--font-heading), sans-serif;
 }
@@ -52,8 +63,79 @@ button {
 .pageShell {
   position: relative;
   overflow: hidden;
+  isolation: isolate;
   min-height: 100vh;
   padding: 32px;
+}
+
+.pagePixelGrid,
+.pagePixelNoise,
+.pageBrandStamps {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+}
+
+.pagePixelGrid {
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 255, 255, 0.028) 0,
+      rgba(255, 255, 255, 0.028) 1px,
+      transparent 1px,
+      transparent 14px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.028) 0,
+      rgba(255, 255, 255, 0.028) 1px,
+      transparent 1px,
+      transparent 14px
+    );
+  opacity: 0.5;
+}
+
+.pagePixelNoise {
+  background:
+    repeating-linear-gradient(
+      135deg,
+      rgba(143, 91, 255, 0.1) 0,
+      rgba(143, 91, 255, 0.1) 2px,
+      transparent 2px,
+      transparent 32px
+    ),
+    repeating-linear-gradient(
+      45deg,
+      rgba(255, 255, 255, 0.03) 0,
+      rgba(255, 255, 255, 0.03) 1px,
+      transparent 1px,
+      transparent 26px
+    );
+  opacity: 0.18;
+}
+
+.pageBrandStamp {
+  position: absolute;
+  width: clamp(82px, 12vw, 180px);
+  height: auto;
+  opacity: 0.06;
+  image-rendering: pixelated;
+  filter: drop-shadow(6px 6px 0 rgba(143, 91, 255, 0.18));
+}
+
+.pageBrandStamp.stampOne {
+  top: 72px;
+  left: 44px;
+}
+
+.pageBrandStamp.stampTwo {
+  right: 46px;
+  top: 160px;
+}
+
+.pageBrandStamp.stampThree {
+  left: 12%;
+  bottom: 72px;
 }
 
 .modeNav {
@@ -84,29 +166,6 @@ button {
 .modeLink.active {
   color: var(--text);
   background: linear-gradient(135deg, var(--pyth-violet), var(--signal-magenta));
-}
-
-.pageGlow {
-  pointer-events: none;
-  position: absolute;
-  filter: blur(90px);
-  opacity: 0.7;
-}
-
-.pageGlowTop {
-  top: -140px;
-  left: 8%;
-  width: 460px;
-  height: 460px;
-  background: rgba(143, 91, 255, 0.24);
-}
-
-.pageGlowBottom {
-  right: -80px;
-  bottom: -120px;
-  width: 420px;
-  height: 420px;
-  background: rgba(123, 127, 255, 0.14);
 }
 
 .heroFrame {
@@ -217,11 +276,50 @@ button {
 .pythBrand {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 16px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 22px;
-  background: linear-gradient(135deg, rgba(143, 91, 255, 0.08), rgba(255, 255, 255, 0.03));
+  gap: 12px;
+  padding: 10px 12px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0;
+  background:
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.04) 0,
+      rgba(255, 255, 255, 0.04) 2px,
+      rgba(255, 255, 255, 0.012) 2px,
+      rgba(255, 255, 255, 0.012) 6px
+    ),
+    rgba(12, 8, 21, 0.96);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    6px 6px 0 rgba(10, 7, 18, 0.52);
+}
+
+.pythBrandIconBox {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  padding: 8px;
+  border: 2px solid rgba(143, 91, 255, 0.28);
+  background:
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.05) 0,
+      rgba(255, 255, 255, 0.05) 2px,
+      rgba(255, 255, 255, 0.012) 2px,
+      rgba(255, 255, 255, 0.012) 5px
+    ),
+    rgba(143, 91, 255, 0.12);
+  box-shadow: 4px 4px 0 rgba(10, 7, 18, 0.5);
+}
+
+.pythBrandIcon {
+  display: block;
+  width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+  opacity: 1;
+  filter: brightness(1.2) contrast(1.2);
 }
 
 .pythBrandText {
@@ -233,14 +331,17 @@ button {
   color: var(--muted);
   font-family: var(--font-mono), monospace;
   font-size: 0.68rem;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
 }
 
 .pythBrandLogo {
   display: block;
-  width: min(190px, 44vw);
+  width: min(160px, 42vw);
   height: auto;
+  image-rendering: pixelated;
+  opacity: 1;
+  filter: brightness(1.4) contrast(1.2);
 }
 
 .heroSignalStrip {
@@ -252,7 +353,7 @@ button {
 .heroSignalChip {
   padding: 9px 12px;
   border: 1px solid rgba(176, 108, 255, 0.16);
-  border-radius: 999px;
+  border-radius: 0;
   background: rgba(176, 108, 255, 0.08);
   color: rgba(239, 227, 255, 0.82);
   font-family: var(--font-mono), monospace;
@@ -264,6 +365,2045 @@ button {
 .heroMeta {
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+.heroBench {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.heroBenchCard {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  padding: 16px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.heroBenchCard.toneverdict {
+  border-color: rgba(251, 113, 133, 0.18);
+  background: linear-gradient(135deg, rgba(251, 113, 133, 0.12), rgba(143, 91, 255, 0.12));
+}
+
+.heroBenchCard.tonetrust {
+  border-color: rgba(34, 211, 238, 0.18);
+}
+
+.heroBenchCard.tonecap {
+  border-color: rgba(245, 158, 11, 0.18);
+}
+
+.heroBenchCard.toneroute {
+  border-color: rgba(52, 211, 153, 0.18);
+}
+
+.heroBenchLabel,
+.heroBenchNote,
+.caseFactLabel,
+.trialFactLabel {
+  font-family: var(--font-mono), monospace;
+}
+
+.heroBenchLabel {
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.heroBenchValue {
+  font-size: clamp(1.05rem, 2vw, 1.45rem);
+  line-height: 1.2;
+}
+
+.heroBenchNote {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+.trialSceneShell {
+  position: relative;
+  z-index: 1;
+  min-height: calc(100vh - 64px);
+  display: grid;
+  place-items: center;
+  max-width: 1560px;
+  margin: 0 auto;
+}
+
+.trialSceneGlow {
+  pointer-events: none;
+  position: absolute;
+  border-radius: 0;
+  opacity: 0.24;
+}
+
+.trialSceneGlowLeft {
+  top: 8%;
+  left: -2%;
+  width: 360px;
+  height: 360px;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(143, 91, 255, 0.2) 0,
+      rgba(143, 91, 255, 0.2) 10px,
+      transparent 10px,
+      transparent 20px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(143, 91, 255, 0.14) 0,
+      rgba(143, 91, 255, 0.14) 10px,
+      transparent 10px,
+      transparent 20px
+    );
+}
+
+.trialSceneGlowRight {
+  right: 0;
+  bottom: 6%;
+  width: 420px;
+  height: 420px;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(251, 113, 133, 0.14) 0,
+      rgba(251, 113, 133, 0.14) 12px,
+      transparent 12px,
+      transparent 24px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      rgba(245, 158, 11, 0.1) 0,
+      rgba(245, 158, 11, 0.1) 12px,
+      transparent 12px,
+      transparent 24px
+    );
+}
+
+.intakeScene,
+.courtroomScene,
+.verdictScene {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+}
+
+.intakeScene {
+  display: grid;
+  gap: 28px;
+  justify-items: center;
+  padding: 16px 0 28px;
+}
+
+.intakeHero,
+.verdictHero {
+  display: grid;
+  gap: 14px;
+  justify-items: center;
+  text-align: center;
+}
+
+.intakeWordmark {
+  width: min(170px, 38vw);
+  height: auto;
+  image-rendering: pixelated;
+  filter:
+    brightness(1.55)
+    contrast(1.18)
+    drop-shadow(4px 4px 0 rgba(10, 7, 18, 0.6));
+}
+
+.intakeHero h1,
+.verdictHeroWord {
+  margin: 0;
+  font-family: var(--font-mono), monospace;
+  font-size: clamp(3rem, 7vw, 6rem);
+  line-height: 0.88;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-shadow:
+    4px 4px 0 rgba(39, 20, 74, 0.72),
+    0 0 28px rgba(143, 91, 255, 0.16);
+}
+
+.intakeHero h1 {
+  display: grid;
+  gap: 4px;
+}
+
+.intakeHeroAccent {
+  color: #f39a50;
+}
+
+.intakeHero p,
+.verdictHeroSummary {
+  max-width: 52ch;
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.caseTerminal {
+  width: min(520px, 100%);
+  display: grid;
+  gap: 16px;
+  padding: 22px;
+  border: 1px solid var(--border);
+  border-radius: 0;
+  background:
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.035) 0,
+      rgba(255, 255, 255, 0.035) 2px,
+      rgba(255, 255, 255, 0.01) 2px,
+      rgba(255, 255, 255, 0.01) 6px
+    ),
+    rgba(10, 7, 19, 0.88);
+  box-shadow:
+    0 0 0 2px rgba(97, 61, 168, 0.32),
+    8px 8px 0 rgba(8, 5, 18, 0.82),
+    0 34px 80px rgba(0, 0, 0, 0.34);
+  animation: revealUp 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.caseTerminalTopline,
+.caseTerminalFooter,
+.dialogueConsoleTop,
+.courtroomHeader,
+.courtroomHeaderMeta,
+.verdictActionRow,
+.verdictEvidenceStrip {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.caseTerminalChrome {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.chromeDot {
+  width: 12px;
+  height: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.26);
+}
+
+.chromeDot.danger {
+  background: rgba(251, 113, 133, 0.9);
+}
+
+.chromeDot.warm {
+  background: rgba(245, 158, 11, 0.9);
+}
+
+.chromeDot.safe {
+  background: rgba(52, 211, 153, 0.9);
+}
+
+.chromeRule {
+  flex: 1;
+  height: 2px;
+  background:
+    linear-gradient(90deg, rgba(176, 108, 255, 0.44), rgba(255, 255, 255, 0.08));
+}
+
+.casePromptBlock {
+  display: grid;
+  gap: 10px;
+  padding: 16px 18px;
+  border: 1px solid rgba(176, 108, 255, 0.16);
+  border-radius: 0;
+  background: rgba(176, 108, 255, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.casePromptLabel {
+  color: var(--witness-cyan);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.casePromptText {
+  margin: 0;
+  font-family: var(--font-mono), monospace;
+  line-height: 1.6;
+}
+
+.casePromptText.subdued {
+  color: var(--muted);
+}
+
+.advancedToggleButton {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--muted);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.76rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  box-shadow: 4px 4px 0 rgba(10, 7, 18, 0.52);
+}
+
+.advancedFilingPanel {
+  display: grid;
+  gap: 16px;
+  padding: 12px 0 0;
+}
+
+.trialCheckboxRow {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  color: var(--muted);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+}
+
+.trialCheckboxRow input {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--pyth-violet);
+}
+
+.intakeFootnote {
+  margin: 0;
+  color: var(--muted);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  line-height: 1.6;
+  text-align: center;
+}
+
+.trialFormGrid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.caseFilingStrip {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.caseTerminalFooter {
+  display: grid;
+  gap: 14px;
+}
+
+.courtroomScene {
+  display: grid;
+  gap: 22px;
+  padding: 10px 0 22px;
+}
+
+.courtroomHeader {
+  padding-inline: 4px;
+}
+
+.courtroomArena {
+  position: relative;
+  display: grid;
+  gap: 22px;
+  padding: 28px;
+  border: 1px solid rgba(176, 108, 255, 0.22);
+  border-radius: 0;
+  background:
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.03) 0,
+      rgba(255, 255, 255, 0.03) 2px,
+      rgba(255, 255, 255, 0.008) 2px,
+      rgba(255, 255, 255, 0.008) 6px
+    ),
+    rgba(10, 7, 19, 0.92);
+  box-shadow:
+    0 0 0 2px rgba(97, 61, 168, 0.24),
+    10px 10px 0 rgba(8, 5, 18, 0.82),
+    0 34px 80px rgba(0, 0, 0, 0.34);
+  backdrop-filter: blur(24px);
+}
+
+.courtroomArena.shockAttack {
+  animation: screenShake 260ms steps(2, end);
+}
+
+.courtroomBackdrop {
+  position: relative;
+  display: grid;
+  min-height: 380px;
+  padding: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0.01)),
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.02) 0,
+      rgba(255, 255, 255, 0.02) 1px,
+      transparent 1px,
+      transparent 5px
+    ),
+    linear-gradient(180deg, rgba(27, 19, 49, 0.8), rgba(14, 11, 25, 0.92));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.courtroomSpeedlines,
+.courtroomFloorGrid {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+}
+
+.courtroomSpeedlines {
+  background:
+    linear-gradient(112deg, transparent 0 18%, rgba(255, 255, 255, 0.04) 18% 19%, transparent 19% 28%),
+    linear-gradient(70deg, transparent 0 58%, rgba(255, 255, 255, 0.035) 58% 59%, transparent 59% 69%),
+    linear-gradient(128deg, transparent 0 73%, rgba(255, 255, 255, 0.03) 73% 74%, transparent 74% 100%);
+  opacity: 0.5;
+}
+
+.courtroomFloorGrid {
+  inset: auto 0 0 0;
+  height: 44%;
+  background:
+    linear-gradient(180deg, transparent, rgba(143, 91, 255, 0.08)),
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.045) 0,
+      rgba(255, 255, 255, 0.045) 1px,
+      transparent 1px,
+      transparent 54px
+    ),
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.04) 0,
+      rgba(255, 255, 255, 0.04) 1px,
+      transparent 1px,
+      transparent 24px
+    );
+  mask-image: linear-gradient(180deg, transparent 0, black 24%, black 100%);
+}
+
+.courtroomSeal {
+  justify-self: center;
+  align-self: start;
+  padding: 10px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--muted);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.74rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.courtroomSpeakerFrame {
+  align-self: end;
+  justify-self: center;
+  width: min(480px, 100%);
+  display: grid;
+  gap: 10px;
+  padding: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0;
+  background:
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.04) 0,
+      rgba(255, 255, 255, 0.04) 2px,
+      rgba(255, 255, 255, 0.015) 2px,
+      rgba(255, 255, 255, 0.015) 6px
+    ),
+    rgba(255, 255, 255, 0.04);
+  text-align: center;
+  box-shadow:
+    0 0 0 2px rgba(255, 255, 255, 0.035),
+    8px 8px 0 rgba(10, 8, 19, 0.78);
+  animation: revealUp 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.pixelWitness {
+  position: relative;
+  justify-self: center;
+  width: 118px;
+  height: 118px;
+  margin-bottom: 4px;
+  filter: drop-shadow(0 8px 0 rgba(10, 7, 18, 0.62));
+}
+
+.pixelWitness.mini {
+  justify-self: start;
+  width: 66px;
+  height: 66px;
+  margin-bottom: 6px;
+  filter: drop-shadow(0 4px 0 rgba(10, 7, 18, 0.58));
+}
+
+.pixelWitnessHead,
+.pixelWitnessEyes,
+.pixelWitnessBody {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  image-rendering: pixelated;
+}
+
+.pixelWitnessHead {
+  top: 12px;
+  width: 46px;
+  height: 38px;
+  background: #f7e5f8;
+  box-shadow:
+    -12px 6px 0 0 currentColor,
+    12px 6px 0 0 currentColor,
+    0 -8px 0 0 currentColor;
+}
+
+.pixelWitnessEyes {
+  top: 32px;
+  width: 30px;
+  height: 6px;
+  background:
+    linear-gradient(90deg, #07030f 0 8px, transparent 8px 22px, #07030f 22px 30px);
+}
+
+.pixelWitnessBody {
+  top: 64px;
+  width: 62px;
+  height: 34px;
+  background: currentColor;
+  box-shadow:
+    0 10px 0 0 rgba(255, 255, 255, 0.08),
+    -18px 12px 0 0 currentColor,
+    18px 12px 0 0 currentColor;
+}
+
+.pixelWitness.roleProsecutor {
+  color: #fb7185;
+}
+
+.pixelWitness.roleDefense {
+  color: #34d399;
+}
+
+.pixelWitness.roleGuard {
+  color: #22d3ee;
+}
+
+.pixelWitness.roleJudge {
+  color: #f59e0b;
+}
+
+.courtroomSpeakerFrame.roleProsecutor {
+  border-color: rgba(251, 113, 133, 0.22);
+  box-shadow: 0 20px 50px rgba(106, 21, 48, 0.18);
+}
+
+.courtroomSpeakerFrame.roleDefense {
+  border-color: rgba(52, 211, 153, 0.2);
+  box-shadow: 0 20px 50px rgba(11, 85, 57, 0.16);
+}
+
+.courtroomSpeakerFrame.roleGuard {
+  border-color: rgba(34, 211, 238, 0.22);
+  box-shadow: 0 20px 50px rgba(12, 79, 93, 0.16);
+}
+
+.courtroomSpeakerFrame.roleJudge {
+  border-color: rgba(245, 158, 11, 0.22);
+  box-shadow: 0 20px 50px rgba(102, 62, 0, 0.16);
+}
+
+.courtroomSpeakerLabel,
+.courtroomSpeakerEmotion,
+.dialogueSpeakerName,
+.verdictHeroStamp,
+.courtroomPortraitRole {
+  font-family: var(--font-mono), monospace;
+}
+
+.courtroomSpeakerLabel,
+.courtroomSpeakerEmotion,
+.courtroomSpeakerFlavor {
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.courtroomSpeakerFlavor {
+  letter-spacing: 0.08em;
+}
+
+.courtroomSpeakerName {
+  font-family: var(--font-mono), monospace;
+  font-size: clamp(1.8rem, 3vw, 2.8rem);
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.courtroomBenchRow {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.benchPortrait {
+  display: grid;
+  gap: 8px;
+  min-height: 124px;
+  align-content: end;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0;
+  background:
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.028) 0,
+      rgba(255, 255, 255, 0.028) 2px,
+      rgba(255, 255, 255, 0.01) 2px,
+      rgba(255, 255, 255, 0.01) 5px
+    ),
+    rgba(255, 255, 255, 0.04);
+  opacity: 0.6;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease,
+    border-color 180ms ease;
+}
+
+.benchPortrait.active {
+  opacity: 1;
+  transform: translateY(-2px);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+    6px 6px 0 rgba(10, 7, 18, 0.68);
+}
+
+.benchPortrait.roleProsecutor.active {
+  border-color: rgba(251, 113, 133, 0.22);
+}
+
+.benchPortrait.roleDefense.active {
+  border-color: rgba(52, 211, 153, 0.22);
+}
+
+.benchPortrait.roleGuard.active {
+  border-color: rgba(34, 211, 238, 0.22);
+}
+
+.benchPortrait.roleJudge.active {
+  border-color: rgba(245, 158, 11, 0.22);
+}
+
+.dialogueConsole {
+  position: relative;
+  display: grid;
+  gap: 12px;
+  padding: 22px 24px;
+  border-radius: 0;
+  background:
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.04) 0,
+      rgba(255, 255, 255, 0.04) 2px,
+      rgba(255, 255, 255, 0.012) 2px,
+      rgba(255, 255, 255, 0.012) 5px
+    ),
+    rgba(13, 10, 24, 0.94);
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 255, 255, 0.04),
+    8px 8px 0 rgba(10, 7, 18, 0.82);
+  animation: revealUp 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  overflow: hidden;
+}
+
+.dialogueConsole::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 100%;
+  height: 4px;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.72) 0,
+      rgba(255, 255, 255, 0.72) 8px,
+      transparent 8px,
+      transparent 12px
+    );
+  opacity: 0.34;
+}
+
+.dialogueConsole.toneattack {
+  border: 1px solid rgba(251, 113, 133, 0.2);
+}
+
+.dialogueConsole.tonedefense {
+  border: 1px solid rgba(52, 211, 153, 0.2);
+}
+
+.dialogueConsole.toneevidence {
+  border: 1px solid rgba(34, 211, 238, 0.2);
+}
+
+.dialogueConsole.toneverdict {
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.dialogueSpeakerName {
+  color: var(--witness-cyan);
+  font-size: 0.88rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.dialogueText {
+  margin: 0;
+  font-family: var(--font-mono), monospace;
+  font-size: clamp(1.05rem, 2vw, 1.26rem);
+  line-height: 1.85;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-shadow: 2px 2px 0 rgba(9, 6, 17, 0.6);
+  min-height: 6.2em;
+}
+
+.dialogueCursor {
+  display: inline-block;
+  margin-left: 0.16em;
+  opacity: 0;
+  color: var(--witness-cyan);
+}
+
+.dialogueCursor.visible {
+  animation: cursorBlink 720ms steps(1, end) infinite;
+}
+
+.impactStamp {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  display: grid;
+  place-items: center;
+  color: rgba(255, 241, 245, 0.96);
+  font-family: var(--font-mono), monospace;
+  font-size: clamp(3.6rem, 12vw, 9rem);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-shadow:
+    6px 6px 0 rgba(77, 18, 39, 0.78),
+    0 10px 24px rgba(0, 0, 0, 0.34);
+  opacity: 0;
+  transform: scale(0.82) rotate(-8deg);
+}
+
+.impactStamp.visible {
+  animation: objectionStamp 480ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.verdictScene {
+  display: grid;
+  gap: 28px;
+  justify-items: center;
+  padding: 18px 0 28px;
+}
+
+.verdictHeroWord.outcomeacquitted {
+  color: var(--verdict-mint);
+}
+
+.verdictHeroWord.outcomecontested {
+  color: var(--evidence-gold);
+}
+
+.verdictHeroWord.outcomeconvicted {
+  color: var(--danger-coral);
+}
+
+.verdictHeroStamp {
+  padding: 14px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0;
+  transform: rotate(-6deg);
+  font-size: 1rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  box-shadow: 6px 6px 0 rgba(10, 7, 18, 0.72);
+}
+
+.verdictHeroStamp.outcomeacquitted {
+  border-color: rgba(52, 211, 153, 0.26);
+  color: var(--verdict-mint);
+  background: rgba(52, 211, 153, 0.1);
+}
+
+.verdictHeroStamp.outcomecontested {
+  border-color: rgba(245, 158, 11, 0.26);
+  color: var(--evidence-gold);
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.verdictHeroStamp.outcomeconvicted {
+  border-color: rgba(251, 113, 133, 0.26);
+  color: var(--danger-coral);
+  background: rgba(251, 113, 133, 0.1);
+}
+
+.verdictPanelFull {
+  width: min(880px, 100%);
+  display: grid;
+  gap: 20px;
+  padding: 28px;
+  border: 1px solid var(--border);
+  border-radius: 0;
+  background:
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.035) 0,
+      rgba(255, 255, 255, 0.035) 2px,
+      rgba(255, 255, 255, 0.01) 2px,
+      rgba(255, 255, 255, 0.01) 6px
+    ),
+    rgba(10, 7, 19, 0.92);
+  box-shadow:
+    0 0 0 2px rgba(97, 61, 168, 0.24),
+    10px 10px 0 rgba(8, 5, 18, 0.82),
+    0 34px 80px rgba(0, 0, 0, 0.34);
+}
+
+.verdictReasonStack {
+  display: grid;
+  gap: 14px;
+}
+
+.verdictReasonPanel {
+  padding: 16px 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0;
+  background:
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.03) 0,
+      rgba(255, 255, 255, 0.03) 2px,
+      rgba(255, 255, 255, 0.012) 2px,
+      rgba(255, 255, 255, 0.012) 5px
+    ),
+    rgba(255, 255, 255, 0.04);
+  font-family: var(--font-mono), monospace;
+  line-height: 1.65;
+}
+
+.trialHeroMarks {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  opacity: 0.84;
+}
+
+.trialHeroMarks img:first-child,
+.trialHeroMarks img:last-child {
+  width: min(150px, 28vw);
+  height: auto;
+  image-rendering: pixelated;
+  filter: drop-shadow(4px 4px 0 rgba(10, 7, 18, 0.56));
+  opacity: 1;
+}
+
+.trialHeroMarks img:nth-child(2) {
+  width: min(90px, 20vw);
+  height: auto;
+  opacity: 1;
+  image-rendering: pixelated;
+  filter: drop-shadow(4px 4px 0 rgba(10, 7, 18, 0.56));
+}
+
+.courtroomSceneExpanded,
+.verdictSceneExpanded {
+  width: min(1480px, 100%);
+  margin: 0 auto;
+}
+
+.trialHeaderExpanded {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 20px;
+  align-items: center;
+}
+
+.trialHeaderExpanded.compact {
+  grid-template-columns: 1fr;
+  justify-items: center;
+  text-align: center;
+  gap: 12px;
+}
+
+.trialHeaderCenter {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  text-align: center;
+}
+
+.trialHeaderLogo {
+  width: min(240px, 32vw);
+  height: auto;
+  image-rendering: pixelated;
+  opacity: 1;
+  filter:
+    brightness(1.6)
+    contrast(1.2)
+    drop-shadow(4px 4px 0 rgba(10, 7, 18, 0.72));
+}
+
+.trialHeaderWord {
+  color: var(--muted);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.trialSceneMeta {
+  margin: 0;
+  color: var(--muted);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  line-height: 1.6;
+  text-transform: uppercase;
+}
+
+.trialSceneMeta.intakeMeta {
+  opacity: 0.88;
+}
+
+.trialSceneMeta.compact {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  text-transform: none;
+  font-size: 0.76rem;
+  letter-spacing: 0.06em;
+}
+
+.trialSceneMetaDivider {
+  opacity: 0.4;
+}
+
+.trialCourtStage {
+  position: relative;
+  display: grid;
+  gap: 22px;
+  padding: 32px;
+  border: 1px solid rgba(176, 108, 255, 0.24);
+  border-radius: 0;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0)),
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.03) 0,
+      rgba(255, 255, 255, 0.03) 2px,
+      rgba(255, 255, 255, 0.008) 2px,
+      rgba(255, 255, 255, 0.008) 7px
+    ),
+    linear-gradient(180deg, rgba(18, 12, 32, 0.96), rgba(10, 7, 18, 0.98));
+  box-shadow:
+    0 0 0 2px rgba(97, 61, 168, 0.24),
+    12px 12px 0 rgba(8, 5, 18, 0.84),
+    0 34px 80px rgba(0, 0, 0, 0.36);
+  overflow: hidden;
+}
+
+.trialCourtStage::before,
+.trialCourtStage::after,
+.trialCourtChrome {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+}
+
+.trialCourtChrome {
+  background:
+    linear-gradient(110deg, transparent 0 20%, rgba(255, 255, 255, 0.04) 20% 21%, transparent 21% 32%),
+    linear-gradient(72deg, transparent 0 60%, rgba(255, 255, 255, 0.03) 60% 61%, transparent 61% 72%),
+    linear-gradient(180deg, rgba(143, 91, 255, 0.08), transparent 36%);
+  opacity: 0.8;
+}
+
+.trialCourtStage::before {
+  content: "";
+  inset: auto 0 0 0;
+  height: 36%;
+  background:
+    linear-gradient(180deg, transparent, rgba(143, 91, 255, 0.1)),
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.045) 0,
+      rgba(255, 255, 255, 0.045) 1px,
+      transparent 1px,
+      transparent 56px
+    ),
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.04) 0,
+      rgba(255, 255, 255, 0.04) 1px,
+      transparent 1px,
+      transparent 22px
+    );
+  mask-image: linear-gradient(180deg, transparent 0, black 28%, black 100%);
+}
+
+.trialCourtStage::after {
+  content: "";
+  inset: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  opacity: 0.72;
+}
+
+.trialCourtStage.shockAttack {
+  animation: screenShake 260ms steps(2, end);
+}
+
+.trialCastLayout {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 1.08fr) minmax(0, 1fr);
+  align-items: end;
+}
+
+.trialCastLayout.hearingDuel {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  max-width: 1080px;
+  margin: 0 auto;
+}
+
+.trialCastLayout.hearingDuel.focusDefense {
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.65fr);
+}
+
+.trialCastLayout.hearingDuel.focusProsecutor {
+  grid-template-columns: minmax(0, 0.65fr) minmax(0, 1.35fr);
+}
+
+.trialCastLayout.focusDefense .trialCounselPanel.roleDefense,
+.trialCastLayout.focusProsecutor .trialCounselPanel.roleProsecutor,
+.trialCastLayout.focusJudge .trialJudgeBench {
+  opacity: 1;
+  transform: translateY(-10px) scale(1.04);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    10px 10px 0 rgba(10, 7, 18, 0.78);
+}
+
+.trialCastLayout.focusDefense {
+  grid-template-columns: minmax(0, 1.28fr) minmax(220px, 0.8fr) minmax(0, 0.34fr);
+}
+
+.trialCastLayout.focusProsecutor {
+  grid-template-columns: minmax(0, 0.34fr) minmax(220px, 0.8fr) minmax(0, 1.28fr);
+}
+
+.trialCastLayout.focusDefense .trialCounselPanel.roleDefense .pixelWitness.stage,
+.trialCastLayout.focusDefense .trialCounselPanel.roleDefense .courtPortrait.stage,
+.trialCastLayout.focusProsecutor .trialCounselPanel.roleProsecutor .pixelWitness.stage,
+.trialCastLayout.focusProsecutor .trialCounselPanel.roleProsecutor .courtPortrait.stage {
+  width: 210px;
+  height: 210px;
+}
+
+.trialCastLayout.focusJudge .trialJudgeBench .pixelWitness.judge,
+.trialCastLayout.focusJudge .trialJudgeBench .courtPortrait.judge {
+  width: 228px;
+  height: 228px;
+}
+
+.trialCastLayout.focusDefense .trialCounselPanel.roleProsecutor,
+.trialCastLayout.focusProsecutor .trialCounselPanel.roleDefense {
+  opacity: 0;
+  transform: translateY(24px) scale(0.88);
+}
+
+.trialCastLayout.hearingDuel.focusDefense .trialCounselPanel.roleProsecutor,
+.trialCastLayout.hearingDuel.focusProsecutor .trialCounselPanel.roleDefense {
+  opacity: 0.28;
+  transform: translateY(18px) scale(0.92);
+}
+
+.trialCastLayout.focusDefense .trialJudgeBench,
+.trialCastLayout.focusProsecutor .trialJudgeBench {
+  opacity: 0.22;
+  transform: translateY(14px) scale(0.94);
+}
+
+.trialCastLayout.focusJudge .trialCounselPanel {
+  opacity: 0.2;
+  transform: translateY(20px) scale(0.9);
+}
+
+.trialCounselPanel,
+.trialJudgeBench {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 10px;
+  align-content: end;
+  justify-items: center;
+  min-height: 360px;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0;
+  background:
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.03) 0,
+      rgba(255, 255, 255, 0.03) 2px,
+      rgba(255, 255, 255, 0.008) 2px,
+      rgba(255, 255, 255, 0.008) 6px
+    ),
+    rgba(255, 255, 255, 0.03);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+  transition:
+    transform 180ms ease,
+    opacity 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.trialCounselPanel.stateidle,
+.trialJudgeBench.stateidle {
+  opacity: 0.62;
+}
+
+.trialCounselPanel.stateactive,
+.trialJudgeBench.stateactive {
+  opacity: 1;
+  transform: translateY(-4px);
+}
+
+.trialCounselPanel.statewinner,
+.trialJudgeBench.ruling {
+  opacity: 1;
+  transform: translateY(-6px);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    8px 8px 0 rgba(10, 7, 18, 0.74);
+}
+
+.trialCounselPanel.stateloser {
+  opacity: 0.46;
+  transform: translateY(8px);
+  filter: saturate(0.72);
+}
+
+.trialCounselPanel.roleDefense {
+  border-color: rgba(52, 211, 153, 0.2);
+}
+
+.trialCounselPanel.roleProsecutor {
+  border-color: rgba(251, 113, 133, 0.2);
+}
+
+.trialJudgeBench {
+  min-height: 420px;
+  border-color: rgba(245, 158, 11, 0.22);
+  background:
+    radial-gradient(circle at 50% 24%, rgba(143, 91, 255, 0.18), transparent 42%),
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.03) 0,
+      rgba(255, 255, 255, 0.03) 2px,
+      rgba(255, 255, 255, 0.008) 2px,
+      rgba(255, 255, 255, 0.008) 6px
+    ),
+    rgba(255, 255, 255, 0.03);
+}
+
+.openingStage {
+  justify-items: center;
+}
+
+.openingBench {
+  width: min(680px, 100%);
+}
+
+.trialJudgeSealRow {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+}
+
+.trialJudgeLogo {
+  width: min(190px, 36vw);
+  height: auto;
+  opacity: 1;
+  image-rendering: pixelated;
+  filter:
+    brightness(1.5)
+    contrast(1.15)
+    drop-shadow(4px 4px 0 rgba(10, 7, 18, 0.72));
+}
+
+.trialJudgeTag,
+.trialCounselSide,
+.trialProofLabel,
+.trialProofSource,
+.trialAdvancePrompt,
+.verdictAlarmText,
+.trialProofLead,
+.trialProofNote {
+  font-family: var(--font-mono), monospace;
+}
+
+.trialJudgeTag,
+.trialCounselSide {
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.trialCounselName {
+  font-family: var(--font-mono), monospace;
+  font-size: clamp(1.2rem, 2vw, 1.7rem);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.trialCounselFlavor {
+  color: var(--muted);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.74rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.pixelWitness.stage,
+.courtPortrait.stage {
+  width: 162px;
+  height: 162px;
+}
+
+.pixelWitness.judge,
+.courtPortrait.judge {
+  width: 190px;
+  height: 190px;
+}
+
+.courtPortrait {
+  position: relative;
+  display: grid;
+  place-items: end center;
+}
+
+.courtPortraitInner {
+  position: relative;
+  display: grid;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  background:
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.04) 0,
+      rgba(255, 255, 255, 0.04) 2px,
+      rgba(255, 255, 255, 0.012) 2px,
+      rgba(255, 255, 255, 0.012) 6px
+    ),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(10, 7, 18, 0.18)),
+    #211931;
+  box-shadow:
+    0 12px 0 rgba(10, 7, 18, 0.76),
+    inset 0 0 0 1px rgba(10, 7, 18, 0.66);
+}
+
+.courtPortraitInner::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.06) 0,
+      rgba(255, 255, 255, 0.06) 1px,
+      transparent 1px,
+      transparent 5px
+    );
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.courtPortrait.roleDefense .courtPortraitInner {
+  background:
+    radial-gradient(circle at 50% 22%, rgba(52, 211, 153, 0.16), transparent 48%),
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.04) 0,
+      rgba(255, 255, 255, 0.04) 2px,
+      rgba(255, 255, 255, 0.012) 2px,
+      rgba(255, 255, 255, 0.012) 6px
+    ),
+    linear-gradient(180deg, rgba(111, 255, 196, 0.12), rgba(10, 7, 18, 0.2)),
+    #1c1730;
+}
+
+.courtPortrait.roleProsecutor .courtPortraitInner {
+  background:
+    radial-gradient(circle at 50% 22%, rgba(251, 113, 133, 0.2), transparent 48%),
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.04) 0,
+      rgba(255, 255, 255, 0.04) 2px,
+      rgba(255, 255, 255, 0.012) 2px,
+      rgba(255, 255, 255, 0.012) 6px
+    ),
+    linear-gradient(180deg, rgba(251, 113, 133, 0.14), rgba(10, 7, 18, 0.22)),
+    #1d1230;
+}
+
+.courtPortrait.roleJudge .courtPortraitInner {
+  background:
+    radial-gradient(circle at 50% 22%, rgba(245, 158, 11, 0.22), transparent 48%),
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.04) 0,
+      rgba(255, 255, 255, 0.04) 2px,
+      rgba(255, 255, 255, 0.012) 2px,
+      rgba(255, 255, 255, 0.012) 6px
+    ),
+    linear-gradient(180deg, rgba(245, 158, 11, 0.16), rgba(10, 7, 18, 0.22)),
+    #231628;
+}
+
+.courtPortraitImage {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center bottom;
+  image-rendering: pixelated;
+  filter: contrast(1.12) saturate(0.96) brightness(1.03);
+  transform: translateY(6px) scale(1.06);
+}
+
+.courtPortrait.stateactive,
+.courtPortrait.statewinner {
+  filter: drop-shadow(0 12px 0 rgba(10, 7, 18, 0.78));
+}
+
+.courtPortrait.stateactive .courtPortraitInner,
+.courtPortrait.statewinner .courtPortraitInner {
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow:
+    0 14px 0 rgba(10, 7, 18, 0.82),
+    0 0 0 3px rgba(255, 255, 255, 0.04),
+    inset 0 0 0 1px rgba(10, 7, 18, 0.72);
+}
+
+.courtPortrait.stateactive .courtPortraitImage,
+.courtPortrait.statewinner .courtPortraitImage {
+  transform: translateY(2px) scale(1.1);
+}
+
+.courtPortrait.stateloser {
+  opacity: 0.46;
+  filter: saturate(0.7) brightness(0.9);
+}
+
+.courtPortrait.stateloser .courtPortraitImage {
+  transform: translateY(10px) scale(1.02);
+}
+
+.pixelWitness.poseactive,
+.pixelWitness.posewinner {
+  filter: drop-shadow(0 10px 0 rgba(10, 7, 18, 0.74));
+}
+
+.pixelWitness.poseloser {
+  opacity: 0.55;
+  filter: drop-shadow(0 4px 0 rgba(10, 7, 18, 0.44));
+}
+
+.pixelWitness.posewinner .pixelWitnessEyes {
+  background:
+    linear-gradient(90deg, #07030f 0 8px, transparent 8px 22px, #07030f 22px 30px),
+    linear-gradient(180deg, transparent 0 4px, rgba(255, 255, 255, 0.9) 4px 6px, transparent 6px 100%);
+}
+
+.pixelWitness.posewinner .pixelWitnessBody {
+  box-shadow:
+    0 10px 0 0 rgba(255, 255, 255, 0.1),
+    -22px 12px 0 0 currentColor,
+    22px 10px 0 0 currentColor;
+}
+
+.pixelWitness.poseloser .pixelWitnessBody {
+  box-shadow:
+    0 8px 0 0 rgba(255, 255, 255, 0.06),
+    -12px 16px 0 0 currentColor,
+    12px 16px 0 0 currentColor;
+}
+
+.dialogueConsole.fullWidth {
+  position: relative;
+  z-index: 1;
+  width: min(940px, 100%);
+}
+
+.trialSpeakerFocusRow {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  width: 100%;
+}
+
+.trialSpeakerFocusRow.focusDefense {
+  justify-content: flex-start;
+  padding-right: 12%;
+}
+
+.trialSpeakerFocusRow.focusProsecutor {
+  justify-content: flex-end;
+  padding-left: 12%;
+}
+
+.trialSpeakerFocusRow.focusJudge {
+  justify-content: center;
+}
+
+.dialogueConsole.alignDefense,
+.trialProofBoard.alignDefense {
+  margin-right: auto;
+  margin-left: 0;
+}
+
+.dialogueConsole.alignProsecutor,
+.trialProofBoard.alignProsecutor {
+  margin-left: auto;
+  margin-right: 0;
+}
+
+.dialogueConsole.alignJudge,
+.trialProofBoard.alignJudge {
+  margin-inline: auto;
+}
+
+.trialProofBoard {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 14px;
+  width: min(760px, 100%);
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.03) 0,
+      rgba(255, 255, 255, 0.03) 2px,
+      rgba(255, 255, 255, 0.01) 2px,
+      rgba(255, 255, 255, 0.01) 5px
+    ),
+    rgba(13, 10, 24, 0.9);
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 255, 255, 0.03),
+    8px 8px 0 rgba(10, 7, 18, 0.74);
+}
+
+.trialProofBoard.alignDefense {
+  margin-right: 12%;
+}
+
+.trialProofBoard.alignProsecutor {
+  margin-left: 12%;
+}
+
+.trialProofBoardTop,
+.trialProofDetailTop {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.trialProofLead {
+  margin: 6px 0 0;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.trialProofNavigator {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.proofStepButton {
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.74rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  box-shadow: 4px 4px 0 rgba(10, 7, 18, 0.6);
+}
+
+.proofStepButton:disabled {
+  opacity: 0.36;
+  cursor: default;
+  box-shadow: none;
+}
+
+.trialProofDetailHero {
+  gap: 16px;
+}
+
+.trialProofMetric {
+  display: grid;
+  gap: 4px;
+}
+
+.trialProofValueHero {
+  font-family: var(--font-mono), monospace;
+  font-size: clamp(1.8rem, 4vw, 2.6rem);
+  letter-spacing: 0.05em;
+  line-height: 1;
+}
+
+.trialProofDeltaHero {
+  color: var(--muted);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.82rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.trialProofFoot {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.trialProofGrid,
+.trialDossierGrid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.trialProofCard {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0;
+  background:
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.03) 0,
+      rgba(255, 255, 255, 0.03) 2px,
+      rgba(255, 255, 255, 0.008) 2px,
+      rgba(255, 255, 255, 0.008) 5px
+    ),
+    rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  text-align: left;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+button.trialProofCard {
+  cursor: pointer;
+  font: inherit;
+}
+
+.trialProofCard.active {
+  transform: translate(-2px, -2px);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    6px 6px 0 rgba(10, 7, 18, 0.68);
+}
+
+.trialProofCard.trendsupporting {
+  border-color: rgba(52, 211, 153, 0.24);
+}
+
+.trialProofCard.trenddamaging {
+  border-color: rgba(251, 113, 133, 0.24);
+}
+
+.trialProofCard.trendneutral {
+  border-color: rgba(245, 158, 11, 0.22);
+}
+
+.trialProofCardStatic {
+  align-content: start;
+}
+
+.trialProofLabel,
+.trialProofSource {
+  color: var(--muted);
+  font-size: 0.68rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.trialProofValue {
+  font-size: clamp(1.1rem, 2vw, 1.44rem);
+  line-height: 1.2;
+}
+
+.trialProofDelta {
+  color: rgba(239, 227, 255, 0.84);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.trialProofDetail,
+.verdictGuidancePanel,
+.trialDossierSection {
+  display: grid;
+  gap: 12px;
+  padding: 18px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0;
+  background:
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.03) 0,
+      rgba(255, 255, 255, 0.03) 2px,
+      rgba(255, 255, 255, 0.01) 2px,
+      rgba(255, 255, 255, 0.01) 6px
+    ),
+    rgba(255, 255, 255, 0.04);
+}
+
+.trialProofDetail.trendsupporting {
+  border-color: rgba(52, 211, 153, 0.22);
+}
+
+.trialProofDetail.trenddamaging {
+  border-color: rgba(251, 113, 133, 0.22);
+}
+
+.trialProofDetail.trendneutral {
+  border-color: rgba(245, 158, 11, 0.22);
+}
+
+.trialProofDetail p,
+.verdictGuidancePanel p,
+.trialProofNote {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.trialAdvanceStrip {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.trialAdvanceStrip.center {
+  justify-content: center;
+}
+
+.trialAdvancePrompt {
+  color: rgba(239, 227, 255, 0.84);
+  font-size: 0.82rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.verdictAlarmStage {
+  gap: 28px;
+  align-content: center;
+}
+
+.verdictAlarmWord {
+  color: var(--danger-coral);
+  font-family: var(--font-mono), monospace;
+  font-size: clamp(2.8rem, 8vw, 5.8rem);
+  line-height: 0.92;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: center;
+  text-shadow:
+    6px 6px 0 rgba(77, 18, 39, 0.78),
+    0 0 32px rgba(251, 113, 133, 0.22);
+  animation: verdictAlarm 900ms steps(2, end) infinite;
+}
+
+.verdictAlarmText {
+  margin: 0;
+  color: rgba(255, 227, 231, 0.82);
+  font-size: 0.88rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.verdictCourtStage {
+  width: min(1480px, 100%);
+}
+
+.rulingConsole {
+  width: 100%;
+}
+
+.verdictGuidancePanel {
+  border-color: rgba(245, 158, 11, 0.22);
+}
+
+.trialDossierSection {
+  width: min(1480px, 100%);
+  margin: 0 auto;
+  box-shadow:
+    0 0 0 2px rgba(97, 61, 168, 0.18),
+    10px 10px 0 rgba(8, 5, 18, 0.78);
+}
+
+.trialExperienceShell {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  gap: 24px;
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 28px;
+  border: 1px solid var(--border);
+  border-radius: 32px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.015)),
+    rgba(7, 5, 14, 0.8);
+  box-shadow: var(--shadow-strong);
+  backdrop-filter: blur(24px);
+  animation: revealUp 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.trialHero {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.trialHero h1 {
+  max-width: 780px;
+  margin: 8px 0 0;
+  font-size: clamp(2.6rem, 6vw, 5.4rem);
+  line-height: 0.92;
+  letter-spacing: -0.06em;
+}
+
+.trialHeroCopy {
+  max-width: 56ch;
+  margin: 18px 0 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.trialExperienceLayout {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(320px, 360px) minmax(0, 1fr);
+  align-items: start;
+}
+
+.trialIntakePanel,
+.courtroomStagePanel,
+.trialVerdictBoard {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.015)),
+    var(--surface);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition:
+    transform 220ms ease,
+    border-color 220ms ease,
+    box-shadow 220ms ease;
+}
+
+.trialIntakePanel:hover,
+.courtroomStagePanel:hover,
+.trialVerdictBoard:hover {
+  border-color: rgba(176, 108, 255, 0.34);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 20px 60px rgba(18, 8, 39, 0.28);
+  transform: translateY(-2px);
+}
+
+.trialIntakePanel,
+.courtroomStagePanel {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+}
+
+.trialStartCard {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid rgba(251, 113, 133, 0.2);
+  border-radius: 22px;
+  background:
+    linear-gradient(135deg, rgba(251, 113, 133, 0.14), rgba(143, 91, 255, 0.12)),
+    rgba(255, 255, 255, 0.04);
+}
+
+.trialStartCard p,
+.courtroomStageNote,
+.trialStagePlaceholder p,
+.trialVerdictSummary {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.trialLaunchButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  box-shadow: none;
+}
+
+.courtroomCaseRow {
+  display: grid;
+  gap: 14px;
+}
+
+.courtroomCaseMeta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.courtroomCastGrid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.courtroomPortrait {
+  display: grid;
+  gap: 8px;
+  min-height: 180px;
+  align-content: end;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 50% 26%, rgba(255, 255, 255, 0.08), transparent 36%),
+    rgba(255, 255, 255, 0.04);
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease;
+}
+
+.courtroomPortrait.active {
+  transform: translateY(-2px) scale(1.01);
+  box-shadow: 0 18px 36px rgba(18, 8, 39, 0.26);
+}
+
+.courtroomPortrait.roleProsecutor {
+  border-color: rgba(251, 113, 133, 0.18);
+}
+
+.courtroomPortrait.roleDefense {
+  border-color: rgba(52, 211, 153, 0.18);
+}
+
+.courtroomPortrait.roleGuard {
+  border-color: rgba(34, 211, 238, 0.18);
+}
+
+.courtroomPortrait.roleJudge {
+  border-color: rgba(245, 158, 11, 0.18);
+}
+
+.courtroomPortrait.active.roleProsecutor {
+  background:
+    radial-gradient(circle at 50% 24%, rgba(251, 113, 133, 0.22), transparent 42%),
+    rgba(255, 255, 255, 0.04);
+}
+
+.courtroomPortrait.active.roleDefense {
+  background:
+    radial-gradient(circle at 50% 24%, rgba(52, 211, 153, 0.18), transparent 42%),
+    rgba(255, 255, 255, 0.04);
+}
+
+.courtroomPortrait.active.roleGuard {
+  background:
+    radial-gradient(circle at 50% 24%, rgba(34, 211, 238, 0.2), transparent 42%),
+    rgba(255, 255, 255, 0.04);
+}
+
+.courtroomPortrait.active.roleJudge {
+  background:
+    radial-gradient(circle at 50% 24%, rgba(245, 158, 11, 0.22), transparent 42%),
+    rgba(255, 255, 255, 0.04);
+}
+
+.courtroomPortraitRole,
+.courtroomPortraitStatus {
+  font-family: var(--font-mono), monospace;
+  color: var(--muted);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.courtroomPortraitLabel {
+  font-size: 1.08rem;
+}
+
+.trialTranscriptBoard {
+  display: grid;
+  gap: 12px;
+}
+
+.trialTestimonyCard {
+  display: grid;
+  gap: 8px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  animation: revealUp 340ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.trialTestimonyCard p {
+  margin: 0;
+  line-height: 1.65;
+}
+
+.trialTestimonyCard.toneattack {
+  border: 1px solid rgba(251, 113, 133, 0.18);
+}
+
+.trialTestimonyCard.tonedefense {
+  border: 1px solid rgba(52, 211, 153, 0.18);
+}
+
+.trialTestimonyCard.toneevidence {
+  border: 1px solid rgba(34, 211, 238, 0.18);
+}
+
+.trialTestimonyCard.toneverdict {
+  border: 1px solid rgba(245, 158, 11, 0.18);
+}
+
+.trialStagePlaceholder {
+  display: grid;
+  gap: 10px;
+  min-height: 360px;
+  place-content: center;
+  padding: 24px;
+  border: 1px dashed rgba(176, 108, 255, 0.22);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.03);
+  text-align: center;
+}
+
+.trialVerdictBoard {
+  display: grid;
+  gap: 18px;
+  padding: 20px;
+}
+
+.trialVerdictBoard.outcomeacquitted {
+  border-color: rgba(52, 211, 153, 0.26);
+}
+
+.trialVerdictBoard.outcomecontested {
+  border-color: rgba(245, 158, 11, 0.26);
+}
+
+.trialVerdictBoard.outcomeconvicted {
+  border-color: rgba(251, 113, 133, 0.26);
+}
+
+.trialVerdictTop,
+.trialVerdictFooter {
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.trialVerdictOutcome {
+  display: block;
+  margin-top: 10px;
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  line-height: 0.95;
+  letter-spacing: -0.05em;
+}
+
+.trialReasonGrid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.trialReasonCard {
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+  line-height: 1.6;
 }
 
 .assetBadge,
@@ -337,6 +2477,7 @@ button {
 .trustDial:hover,
 .verdictPanel:hover,
 .witnessScorePanel:hover,
+.caseFilePanel:hover,
 .reasoningPanel:hover,
 .transcriptPanel:hover,
 .witnessTimelinePanel:hover,
@@ -440,9 +2581,37 @@ button {
   width: 100%;
   padding: 13px 14px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.04);
+  border-radius: 0;
+  background:
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.028) 0,
+      rgba(255, 255, 255, 0.028) 2px,
+      rgba(255, 255, 255, 0.008) 2px,
+      rgba(255, 255, 255, 0.008) 5px
+    ),
+    rgba(255, 255, 255, 0.04);
   color: var(--text);
+  font-family: var(--font-mono), monospace;
+  letter-spacing: 0.04em;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+.ticketInput:disabled {
+  opacity: 0.52;
+}
+
+.trialSelect {
+  appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, rgba(255, 255, 255, 0.7) 50%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.7) 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) calc(50% - 2px),
+    calc(100% - 12px) calc(50% - 2px);
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+  padding-right: 32px;
 }
 
 .ticketInput:focus,
@@ -459,7 +2628,7 @@ button {
 .inlineActionButton {
   padding: 12px 14px;
   border: 1px solid rgba(176, 108, 255, 0.18);
-  border-radius: 14px;
+  border-radius: 0;
   background: rgba(176, 108, 255, 0.1);
   color: var(--text);
   font-family: var(--font-mono), monospace;
@@ -467,6 +2636,7 @@ button {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   white-space: nowrap;
+  box-shadow: 4px 4px 0 rgba(10, 7, 18, 0.52);
 }
 
 .assetSwitch {
@@ -478,12 +2648,14 @@ button {
 .assetSwitchButton {
   padding: 10px 12px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
+  border-radius: 0;
   background: rgba(255, 255, 255, 0.03);
   color: var(--text);
   font-family: var(--font-mono), monospace;
   font-size: 0.8rem;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  box-shadow: 4px 4px 0 rgba(10, 7, 18, 0.48);
 }
 
 .assetSwitchButton.active {
@@ -492,14 +2664,21 @@ button {
 }
 
 .actionGrid {
-  flex-wrap: wrap;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .actionChip {
   padding: 12px 16px;
-  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0;
   background: rgba(255, 255, 255, 0.03);
   color: var(--text);
+  font-family: var(--font-mono), monospace;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow: 4px 4px 0 rgba(10, 7, 18, 0.48);
   transition:
     transform 160ms ease,
     border-color 160ms ease,
@@ -509,14 +2688,14 @@ button {
 .actionChip.active {
   background: linear-gradient(135deg, var(--pyth-violet), var(--signal-magenta));
   border-color: transparent;
-  transform: translateY(-1px);
+  transform: translate(-2px, -2px);
 }
 
 .sizeSlider {
   width: 100%;
   appearance: none;
   height: 8px;
-  border-radius: 999px;
+  border-radius: 0;
   background: linear-gradient(90deg, rgba(143, 91, 255, 0.82), rgba(213, 106, 255, 0.4));
   outline: none;
 }
@@ -526,7 +2705,7 @@ button {
   width: 20px;
   height: 20px;
   border: 2px solid rgba(255, 255, 255, 0.86);
-  border-radius: 50%;
+  border-radius: 0;
   background: var(--pyth-violet);
   box-shadow: 0 0 0 4px rgba(143, 91, 255, 0.18);
 }
@@ -535,7 +2714,7 @@ button {
   width: 20px;
   height: 20px;
   border: 2px solid rgba(255, 255, 255, 0.86);
-  border-radius: 50%;
+  border-radius: 0;
   background: var(--pyth-violet);
   box-shadow: 0 0 0 4px rgba(143, 91, 255, 0.18);
 }
@@ -586,9 +2765,10 @@ button {
 }
 
 .trialLaunchButton {
+  width: 100%;
   padding: 14px 18px;
   border: 1px solid rgba(251, 113, 133, 0.26);
-  border-radius: 16px;
+  border-radius: 0;
   background: linear-gradient(135deg, rgba(251, 113, 133, 0.88), rgba(143, 91, 255, 0.82));
   color: white;
   font-family: var(--font-mono), monospace;
@@ -596,7 +2776,9 @@ button {
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  box-shadow: 0 20px 40px rgba(139, 24, 60, 0.25);
+  box-shadow:
+    6px 6px 0 rgba(83, 15, 36, 0.72),
+    0 20px 40px rgba(139, 24, 60, 0.25);
 }
 
 .dialAura {
@@ -936,13 +3118,14 @@ button {
 .modeActionButton {
   padding: 12px 16px;
   border: 1px solid rgba(176, 108, 255, 0.18);
-  border-radius: 16px;
+  border-radius: 0;
   background: rgba(176, 108, 255, 0.08);
   color: var(--text);
   font-family: var(--font-mono), monospace;
   font-size: 0.78rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  box-shadow: 4px 4px 0 rgba(10, 7, 18, 0.48);
 }
 
 .modeActionButton.subtle {
@@ -1136,7 +3319,10 @@ button {
 .witnessStageTop {
   display: grid;
   gap: 18px;
-  grid-template-columns: minmax(0, 1.1fr) minmax(220px, 0.9fr);
+  grid-template-columns:
+    minmax(0, 1.1fr)
+    minmax(220px, 0.55fr)
+    minmax(280px, 0.95fr);
 }
 
 .verdictPanel,
@@ -1189,6 +3375,14 @@ button {
   text-align: left;
 }
 
+.caseCardMetaRow,
+.verdictTagRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
 .caseCard.active {
   border-color: rgba(217, 70, 239, 0.34);
   background: linear-gradient(135deg, rgba(139, 92, 246, 0.22), rgba(217, 70, 239, 0.08));
@@ -1208,13 +3402,19 @@ button {
   justify-self: start;
   padding: 7px 10px;
   border: 1px solid rgba(176, 108, 255, 0.14);
-  border-radius: 999px;
+  border-radius: 0;
   background: rgba(176, 108, 255, 0.08);
   color: rgba(239, 227, 255, 0.82);
   font-family: var(--font-mono), monospace;
   font-size: 0.68rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
+}
+
+.caseMetaTag.subtle {
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 .verdictWord {
@@ -1236,6 +3436,53 @@ button {
   gap: 10px;
   align-content: start;
   justify-items: start;
+}
+
+.caseFilePanel {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.015)),
+    var(--surface);
+}
+
+.caseFactGrid,
+.trialFactsGrid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.caseFact,
+.trialFact {
+  display: grid;
+  gap: 8px;
+  padding: 13px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.caseFactLabel,
+.trialFactLabel {
+  color: var(--muted);
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.caseFactValue {
+  font-size: 0.96rem;
+  line-height: 1.5;
+}
+
+.caseFileNote {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
 }
 
 .witnessScore {
@@ -1262,6 +3509,12 @@ button {
   border-radius: 16px;
   background: rgba(34, 211, 238, 0.05);
   line-height: 1.6;
+}
+
+.stagedReasoning,
+.witnessTranscriptLine {
+  opacity: 0;
+  animation: revealUp 340ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 .transcriptLine {
@@ -1426,6 +3679,10 @@ button {
   gap: 10px;
 }
 
+.trialFactsGrid {
+  margin-top: 2px;
+}
+
 .trialObjectionItem {
   padding: 13px 14px;
   border: 1px solid rgba(251, 113, 133, 0.18);
@@ -1489,11 +3746,95 @@ button {
   }
 }
 
+@keyframes screenShake {
+  0% {
+    transform: translate(0, 0);
+  }
+  20% {
+    transform: translate(-8px, 3px);
+  }
+  40% {
+    transform: translate(8px, -2px);
+  }
+  60% {
+    transform: translate(-6px, -4px);
+  }
+  80% {
+    transform: translate(6px, 2px);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+
+@keyframes cursorBlink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes verdictAlarm {
+  0%,
+  45% {
+    opacity: 1;
+  }
+  46%,
+  58% {
+    opacity: 0.32;
+  }
+  59%,
+  100% {
+    opacity: 1;
+  }
+}
+
 @media (max-width: 1180px) {
+  .trialHeaderExpanded,
+  .trialCastLayout,
+  .trialProofGrid,
+  .trialDossierGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .trialHeaderExpanded {
+    justify-items: center;
+    text-align: center;
+  }
+
+  .trialJudgeBench {
+    order: -1;
+  }
+
+  .courtroomBenchRow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .trialFormGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .trialExperienceLayout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .courtroomCastGrid,
+  .trialReasonGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .witnessLayout,
   .witnessStageTop,
   .trialGrid {
     flex-direction: column;
+  }
+
+  .heroBench {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .mainGrid,
@@ -1521,15 +3862,88 @@ button {
     padding: 16px;
   }
 
-  .heroFrame {
+  .trialSceneShell {
+    min-height: auto;
+    padding-inline: 0;
+  }
+
+  .heroFrame,
+  .trialExperienceShell {
     padding: 18px;
     border-radius: 24px;
   }
 
   .heroHeader,
-  .witnessHero {
+  .witnessHero,
+  .trialHero {
     gap: 20px;
     flex-direction: column;
+  }
+
+  .caseTerminal,
+  .courtroomArena,
+  .verdictPanelFull,
+  .trialCourtStage,
+  .trialDossierSection {
+    padding: 18px;
+    border-radius: 0;
+  }
+
+  .trialHeaderLogo {
+    width: min(200px, 58vw);
+  }
+
+  .trialHeroMarks {
+    gap: 10px;
+  }
+
+  .trialHeroMarks img:first-child,
+  .trialHeroMarks img:last-child {
+    width: min(120px, 36vw);
+  }
+
+  .trialHeroMarks img:nth-child(2) {
+    width: min(70px, 22vw);
+  }
+
+  .trialCounselPanel,
+  .trialJudgeBench {
+    min-height: auto;
+  }
+
+  .pixelWitness.stage,
+  .courtPortrait.stage {
+    width: 128px;
+    height: 128px;
+  }
+
+  .pixelWitness.judge,
+  .courtPortrait.judge {
+    width: 150px;
+    height: 150px;
+  }
+
+  .courtroomBackdrop {
+    min-height: 280px;
+    padding: 18px;
+  }
+
+  .courtroomSpeakerFrame {
+    padding: 18px;
+  }
+
+  .dialogueConsole {
+    padding: 18px;
+  }
+
+  .dialogueText {
+    min-height: 8em;
+  }
+
+  .trialAdvanceStrip,
+  .trialProofBoardTop,
+  .trialProofDetailTop {
+    align-items: flex-start;
   }
 
   .heroMeta {
@@ -1554,11 +3968,25 @@ button {
   }
 
   .dialSignalGrid,
-  .policyGrid {
+  .policyGrid,
+  .heroBench,
+  .caseFactGrid,
+  .trialFactsGrid,
+  .courtroomCastGrid,
+  .trialReasonGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .courtroomBenchRow {
     grid-template-columns: minmax(0, 1fr);
   }
 
   .trialOverlay {
     padding: 20px;
+  }
+
+  .trialVerdictTop,
+  .trialVerdictFooter {
+    align-items: flex-start;
   }
 }

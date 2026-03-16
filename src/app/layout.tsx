@@ -8,8 +8,8 @@ import "@fontsource/ibm-plex-mono/600.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Pyth Guard",
-  description: "A real-time execution trust copilot powered by Pyth Pro.",
+  title: "Pyth Trade Trial",
+  description: "Courtroom-style trade analysis powered by Pyth evidence.",
 };
 
 export default function RootLayout({
