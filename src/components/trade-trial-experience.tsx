@@ -15,7 +15,6 @@ import {
   appendMarketSelection,
   DEFAULT_MARKET_SELECTION,
   FEATURED_PYTH_SYMBOLS,
-  formatChannelLabel,
   MarketSelection,
   PythSymbolOption,
   toMarketSelection,
@@ -93,10 +92,21 @@ type TrialRun = {
   enteredAtLabel: string;
   beats: TrialBeat[];
   verdict: VerdictBoard;
+  reviewSections: TrialReviewSection[];
   verdictSpeech?: string;
   verdictSummary?: string;
   verdictReasons?: string[];
   verdictGuidance?: string;
+};
+
+type TrialReviewSection = {
+  id: string;
+  title: string;
+  stamp: string;
+  summary: string;
+  guidance: string;
+  record: TrialRecordLedger;
+  proofs: TrialProofCard[];
 };
 
 type TrialLeg = {
@@ -1335,6 +1345,40 @@ function getVerdictSpeech(verdict: VerdictBoard) {
   return `${verdict.summary} ${verdict.guidance}`;
 }
 
+function buildReviewSection(args: {
+  id: string;
+  title: string;
+  leg: TrialLeg;
+  beats: TrialBeat[];
+}) {
+  const verdict = buildVerdictBoard({
+    asset: args.leg.asset,
+    intent: args.leg.tradeAssessment.intent,
+    enteredAtLabel: args.leg.enteredAtLabel,
+    tradeAssessment: args.leg.tradeAssessment,
+  });
+  const proofs = Array.from(
+    new Map(
+      args.beats
+        .flatMap((beat) => beat.proofs)
+        .map((proof) => [`${proof.label}:${proof.value}`, proof]),
+    ).values(),
+  ).slice(0, 3);
+
+  return {
+    id: args.id,
+    title: args.title,
+    stamp: verdict.stamp,
+    summary:
+      args.leg.record.sectionLabel === "Current Position"
+        ? `Current tape review: ${args.leg.tradeAssessment.recommendedAction}`
+        : verdict.summary,
+    guidance: verdict.guidance,
+    record: args.leg.record,
+    proofs,
+  } satisfies TrialReviewSection;
+}
+
 const openingSpeech =
   "Order. The court will review this trade. The prosecution will challenge the tape, the defense will answer, and then the ruling will be delivered.";
 
@@ -1505,6 +1549,7 @@ export function TradeTrialExperience() {
   const [closePriceText, setClosePriceText] = useState("");
   const [closePriceTouched, setClosePriceTouched] = useState(false);
   const [showAdvancedFiling, setShowAdvancedFiling] = useState(false);
+  const [showVerdictReview, setShowVerdictReview] = useState(false);
   const [isPreparingTrial, setIsPreparingTrial] = useState(false);
   const [preparationError, setPreparationError] = useState<string | null>(null);
   const [shareFeedback, setShareFeedback] = useState<string | null>(null);
@@ -1917,7 +1962,6 @@ export function TradeTrialExperience() {
       : status === "warming"
         ? "Pyth Pro Warm-up"
         : "Mock Fallback";
-  const selectedChannelLabel = formatChannelLabel(selectedMarket.minChannel);
   const visibleSymbolResults =
     showSymbolResults || assetSearchQuery.trim().toLowerCase() !== asset.toLowerCase();
   const canStartTrial =
@@ -2136,17 +2180,20 @@ export function TradeTrialExperience() {
         followUpMode = "current";
       }
 
+      const entryBeats = buildCaseBeats(entryLeg, "entry", "Entry");
+      const followUpBeats = followUpLeg
+        ? buildCaseBeats(
+            followUpLeg,
+            followUpMode === "current" ? "current" : "close",
+            followUpLabel ?? "Close",
+          )
+        : [];
+
       const nextRun = {
         enteredAtLabel: stillOpen ? enteredAtLabel : `${enteredAtLabel} -> ${closedAtLabel}`,
         beats: [
-          ...buildCaseBeats(entryLeg, "entry", "Entry"),
-          ...(followUpLeg
-            ? buildCaseBeats(
-                followUpLeg,
-                followUpMode === "current" ? "current" : "close",
-                followUpLabel ?? "Close",
-              )
-            : []),
+          ...entryBeats,
+          ...followUpBeats,
         ],
         verdict: buildCombinedVerdict({
           asset: entryLeg.asset,
@@ -2155,6 +2202,27 @@ export function TradeTrialExperience() {
           followUpLabel,
           followUpMode,
         }),
+        reviewSections: [
+          buildReviewSection({
+            id: "entry-review",
+            title: "Entry Review",
+            leg: entryLeg,
+            beats: entryBeats,
+          }),
+          ...(followUpLeg
+            ? [
+                buildReviewSection({
+                  id:
+                    followUpMode === "current"
+                      ? "current-position-review"
+                      : "close-review",
+                  title: followUpLabel ?? "Close Review",
+                  leg: followUpLeg,
+                  beats: followUpBeats,
+                }),
+              ]
+            : []),
+        ],
       } satisfies TrialRun;
 
       const enhancedDialogue = await fetchEnhancedDialogue({
@@ -2191,6 +2259,7 @@ export function TradeTrialExperience() {
       setTypedCharacters(0);
       setShowImpactStamp(false);
       setShowAdvancedFiling(false);
+      setShowVerdictReview(false);
       setPhase("opening");
     } catch (error) {
       setPreparationError(
@@ -2209,6 +2278,7 @@ export function TradeTrialExperience() {
     setShowImpactStamp(false);
     setTypedCharacters(0);
     setShowAdvancedFiling(false);
+    setShowVerdictReview(false);
     setPreparationError(null);
     setShareFeedback(null);
   }
@@ -2298,7 +2368,7 @@ export function TradeTrialExperience() {
                 spellCheck={false}
               />
               <div className="fieldHint">
-                Selected feed: {selectedMarket.symbol} · {selectedChannelLabel}
+                Selected feed: {selectedMarket.symbol}
               </div>
               {visibleSymbolResults ? (
                 <div className="symbolSearchResults" role="listbox" aria-label="Pyth symbol search">
@@ -2323,7 +2393,7 @@ export function TradeTrialExperience() {
                         >
                           <span className="symbolResultAsset">{candidate.asset}</span>
                           <span className="symbolResultMeta">
-                            {candidate.symbol} · {formatChannelLabel(candidate.minChannel)}
+                            {candidate.symbol}
                           </span>
                         </button>
                       );
@@ -2521,7 +2591,7 @@ export function TradeTrialExperience() {
               <p className="intakeFootnote">
                 {preparationError
                   ? preparationError
-                  : `Each case leg is reconstructed from ${selectedMarket.symbol} on ${selectedChannelLabel} Pyth Pro evidence before the hearing begins.`}
+                  : `Each case leg is reconstructed from ${selectedMarket.symbol} using filed Pyth evidence before the hearing begins.`}
               </p>
               <button
                 type="button"
@@ -2707,16 +2777,6 @@ export function TradeTrialExperience() {
                 <div className="trialLedgerCell">
                   <span>Window</span>
                   <strong>{formatEvidenceWindow(activeBeat.record)}</strong>
-                </div>
-                <div className="trialLedgerCell">
-                  <span>Channel</span>
-                  <strong>
-                    {activeBeat.record.channel
-                      ? formatChannelLabel(
-                          activeBeat.record.channel as MarketSelection["minChannel"],
-                        )
-                      : "n/a"}
-                  </strong>
                 </div>
                 <div className="trialLedgerCell">
                   <span>Case Leg</span>
@@ -2980,12 +3040,75 @@ export function TradeTrialExperience() {
             </button>
             <button
               type="button"
+              className="verdictReviewToggle"
+              onClick={() => setShowVerdictReview((current) => !current)}
+            >
+              {showVerdictReview ? "Hide Full Review" : "Show Full Review"}
+            </button>
+            <button
+              type="button"
               className="trialLaunchButton"
               onClick={resetCase}
             >
               File Another Trade
             </button>
           </div>
+          {showVerdictReview ? (
+            <section className="verdictReviewPanel">
+              <div className="dialogueConsoleTop">
+                <span className="panelEyebrow">Filed Review</span>
+                <span className="caseMetaTag subtle">
+                  {trialRun.reviewSections.length} case leg
+                  {trialRun.reviewSections.length === 1 ? "" : "s"}
+                </span>
+              </div>
+              <div className="verdictReviewGrid">
+                {trialRun.reviewSections.map((section) => (
+                  <article key={section.id} className="verdictReviewSection">
+                    <div className="verdictReviewSectionTop">
+                      <div>
+                        <span className="panelEyebrow">{section.title}</span>
+                        <strong className="verdictReviewSectionTitle">
+                          {section.record.sectionLabel}
+                        </strong>
+                      </div>
+                      <span className="verdictReviewStamp">{section.stamp}</span>
+                    </div>
+                    <p className="verdictReviewSummary">{section.summary}</p>
+                    <div className="verdictReviewMeta">
+                      <span className="caseMetaTag subtle">
+                        {section.record.source === "pyth-pro"
+                          ? "Pyth Pro / Lazer"
+                          : "Mock Fallback"}
+                      </span>
+                      <span className="caseMetaTag subtle">
+                        {section.record.sampledAtLabel}
+                      </span>
+                    </div>
+                    <div className="verdictReviewProofList">
+                      {section.proofs.map((proof) => (
+                        <article
+                          key={`${section.id}-${proof.id}`}
+                          className={`verdictReviewProof trend${proof.trend}`}
+                        >
+                          <div className="verdictReviewProofTop">
+                            <strong>{proof.label}</strong>
+                            <span>{proof.source}</span>
+                          </div>
+                          <div className="verdictReviewProofMetric">
+                            <strong>{proof.value}</strong>
+                            <span>{proof.delta}</span>
+                          </div>
+                          <p>{proof.note}</p>
+                        </article>
+                      ))}
+                    </div>
+                    <p className="verdictReviewGuidance">{section.guidance}</p>
+                  </article>
+                ))}
+              </div>
+            </section>
+          ) : null}
           {shareFeedback ? <p className="verdictShareFeedback">{shareFeedback}</p> : null}
         </section>
       </div>

@@ -9,7 +9,6 @@ import { MarketInput, MarketState, mockScenarioFrames } from "@/lib/mock-market-
 import {
   DEFAULT_MARKET_SELECTION,
   FEATURED_PYTH_SYMBOLS,
-  formatChannelLabel,
   MarketSelection,
   PythSymbolOption,
   toPythSymbolOption,
@@ -127,11 +126,8 @@ function formatLiveNotice(
   selection: MarketSelection,
   baselineSamples: number,
   isBaselineReady: boolean,
-  matchedChannel: Channel,
 ) {
-  const notices = [
-    `Live Pyth Pro feed active on ${selection.symbol} via ${formatChannelLabel(matchedChannel)}.`,
-  ];
+  const notices = [`Live Pyth Pro feed active on ${selection.symbol}.`];
 
   if (!isBaselineReady) {
     notices.push(
@@ -446,7 +442,7 @@ export async function getHistoricalMarketRecord(
       status: "live" as const,
       baselineSamples: points.length,
       baselineTarget: BASELINE_TARGET,
-      notice: `Historical Pyth Pro record reconstructed from ${points.length} samples ending at ${new Date(finalPoint.sampledAtMs).toLocaleString("en-US")} on ${selection.symbol} via ${formatChannelLabel(finalPoint.channel)}.`,
+      notice: `Historical Pyth Pro record reconstructed from ${points.length} samples ending at ${new Date(finalPoint.sampledAtMs).toLocaleString("en-US")} on ${selection.symbol}.`,
       sampledAtMs: finalPoint.sampledAtMs,
       channel: finalPoint.channel,
     } satisfies MarketRecord;
@@ -575,7 +571,7 @@ export async function getLiveMarketSnapshot(selectionInput: MarketSelectionInput
       status: isBaselineReady ? ("live" as const) : ("warming" as const),
       baselineSamples,
       baselineTarget: BASELINE_TARGET,
-      notice: formatLiveNotice(selection, baselineSamples, isBaselineReady, matchedChannel),
+      notice: formatLiveNotice(selection, baselineSamples, isBaselineReady),
       channel: matchedChannel,
     };
   } catch (error) {

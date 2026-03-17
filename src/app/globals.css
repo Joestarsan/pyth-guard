@@ -2401,6 +2401,104 @@ button.trialProofCard {
   border-color: rgba(245, 158, 11, 0.22);
 }
 
+.verdictReviewPanel {
+  display: grid;
+  gap: 16px;
+}
+
+.verdictReviewGrid {
+  display: grid;
+  gap: 16px;
+}
+
+.verdictReviewSection {
+  display: grid;
+  gap: 14px;
+  padding: 18px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.03) 0,
+      rgba(255, 255, 255, 0.03) 2px,
+      rgba(255, 255, 255, 0.01) 2px,
+      rgba(255, 255, 255, 0.01) 6px
+    ),
+    rgba(255, 255, 255, 0.04);
+}
+
+.verdictReviewSectionTop,
+.verdictReviewMeta,
+.verdictReviewProofTop,
+.verdictReviewProofMetric {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.verdictReviewSectionTitle {
+  display: block;
+  margin-top: 6px;
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.verdictReviewStamp {
+  padding: 8px 10px;
+  border: 1px solid rgba(245, 158, 11, 0.22);
+  color: var(--evidence-gold);
+  background: rgba(245, 158, 11, 0.08);
+  font-family: var(--font-ui), monospace;
+  font-size: 0.66rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.verdictReviewSummary,
+.verdictReviewGuidance,
+.verdictReviewProof p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.verdictReviewProofList {
+  display: grid;
+  gap: 10px;
+}
+
+.verdictReviewProof {
+  display: grid;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.verdictReviewProof.trendsupporting {
+  border-color: rgba(52, 211, 153, 0.22);
+}
+
+.verdictReviewProof.trendneutral {
+  border-color: rgba(245, 158, 11, 0.22);
+}
+
+.verdictReviewProof.trenddamaging {
+  border-color: rgba(251, 113, 133, 0.22);
+}
+
+.verdictReviewProofTop span,
+.verdictReviewProofMetric span {
+  color: var(--muted);
+  font-family: var(--font-ui), monospace;
+  font-size: 0.64rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
 .trialDossierSection {
   width: min(1480px, 100%);
   margin: 0 auto;
@@ -2984,6 +3082,7 @@ button.trialProofCard {
 .inlineActionButton:focus,
 .trialLaunchButton:focus,
 .trialShareButton:focus,
+.verdictReviewToggle:focus,
 .modeActionButton:focus,
 .assetSwitchButton:focus,
 .actionChip:focus,
@@ -3166,8 +3265,26 @@ button.trialProofCard {
     0 20px 40px rgba(59, 130, 246, 0.22);
 }
 
+.verdictReviewToggle {
+  width: 100%;
+  padding: 14px 18px;
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  border-radius: 0;
+  background: linear-gradient(135deg, rgba(92, 54, 14, 0.92), rgba(174, 95, 26, 0.82));
+  color: white;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  box-shadow:
+    6px 6px 0 rgba(56, 28, 6, 0.72),
+    0 20px 40px rgba(180, 83, 9, 0.22);
+}
+
 .verdictActionRow > .trialLaunchButton,
-.verdictActionRow > .trialShareButton {
+.verdictActionRow > .trialShareButton,
+.verdictActionRow > .verdictReviewToggle {
   flex: 1 1 220px;
 }
 
@@ -4612,6 +4729,7 @@ button.trialProofCard {
 
 .trialLaunchButton,
 .trialShareButton,
+.verdictReviewToggle,
 .proofStepButton,
 .inlineActionButton,
 .advancedToggleButton,
@@ -4629,6 +4747,7 @@ button.trialProofCard {
 
 .trialLaunchButton:hover,
 .trialShareButton:hover,
+.verdictReviewToggle:hover,
 .proofStepButton:not(:disabled):hover,
 .inlineActionButton:hover,
 .advancedToggleButton:hover,
