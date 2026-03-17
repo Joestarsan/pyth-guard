@@ -1,42 +1,60 @@
 # The Market Witness
 
-`The Market Witness` is a courtroom-style trade analysis demo powered by Pyth evidence.
+`The Market Witness` is a courtroom-style trade analysis app powered by `Pyth Pro / Lazer`.
 
-The product asks a simple question:
+The product asks one simple question:
 
-`Did this trade deserve to be opened or closed under the actual market conditions?`
+`Did this trade deserve to be opened, held, or closed under the actual market conditions?`
 
-## What It Does
+## Core Flow
 
-The app lets a trader file a case with:
-- asset
-- side
-- open time
-- close time or current-position status
-- optional size, leverage, entry price, and close price
+1. Pick a `Pyth` feed by ticker or symbol
+2. Choose `buy` or `sell`
+3. Enter open time and optional close time
+4. Start the trial
+5. Watch a courtroom hearing built on `Pyth` evidence
+6. Receive the final verdict and share it
 
-It then stages a trial:
-- `Judge Opening`
-- `Prosecutor vs Defense` hearing
-- `Pyth proof cards` one beat at a time
-- final verdict and detailed case dossier
+## What Makes It Different
+
+- courtroom presentation instead of another trading dashboard
+- `Pyth Pro` evidence is the mechanic, not decoration
+- entry and close legs are judged separately
+- AI only improves the dialogue layer; verdict logic stays deterministic
 
 ## Pyth Integration
 
-This project currently uses `Pyth Pro / Pyth Lazer` in three ways:
-- symbol discovery with `getSymbols()`
-- live market snapshots with `getLatestPrice()`
-- historical market reconstruction with `getPrice()`
+This project currently uses `Pyth Pro / Pyth Lazer` directly:
 
-The trial engine uses these inputs to judge entry and exit quality:
+- `getSymbols()` for feed discovery
+- `getLatestPrice()` for live current-position context
+- `getPrice()` for historical entry / close reconstruction
+
+The trial engine judges trades with:
+
 - confidence
 - spread
 - publisher participation
-- market session
-- feed freshness
-- reference price context
+- session context
+- freshness / timing
+- execution-quality context
 
-If `PYTH_PRO_TOKEN` is missing or entitlements are limited, the app falls back to a demo-safe mock path so the experience stays usable.
+Important behavior:
+
+- the hearing does **not** open on mock fallback data
+- if required `Pyth Pro` records are unavailable, the user gets a hard stop instead of a fake trial
+- the intake screen now probes historical coverage and warns when a selected date is outside the detected range for that feed
+
+## AI Layer
+
+`OpenRouter` is optional.
+
+When `OPENROUTER_API_KEY` is present:
+
+- dialogue lines are rewritten into more game-like courtroom copy
+- final verdict copy is polished for readability and tone
+
+If it is missing, the product falls back to deterministic built-in dialogue.
 
 ## Local Development
 
@@ -46,19 +64,20 @@ npm install
 npm run dev
 ```
 
-Set `PYTH_PRO_TOKEN` in `.env.local` to enable live and historical Pyth-backed evidence.
+Required env vars:
 
-Optional:
-- `OPENROUTER_API_KEY` is only needed for the portrait generation script in `scripts/generate-courtroom-portraits.mjs`
+- `PYTH_PRO_TOKEN` for real live and historical `Pyth` evidence
 
-## Status
+Optional env vars:
 
-Current app state:
-- court-only product flow on `/`
-- historical `entry + close/current` case analysis
-- pixel courtroom presentation
-- character portraits and courtroom audio cues
-- production build and typecheck passing
+- `OPENROUTER_API_KEY` for AI dialogue polish
+- `OPENROUTER_DIALOGUE_MODEL` to override the default model
+
+## Production Status
+
+- production URL: `https://market-witness-pyth-trial.vercel.app`
+- `npm run typecheck` passes
+- `npm run build` passes
 
 ## License
 
