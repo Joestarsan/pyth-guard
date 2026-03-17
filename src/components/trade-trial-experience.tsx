@@ -1404,6 +1404,19 @@ async function fetchHistoricalRecord(selection: MarketSelection, timestamp: stri
   return (await response.json()) as MarketRecordPayload;
 }
 
+function requirePythRecord(record: MarketRecordPayload, sectionLabel: string) {
+  if (record.source === "pyth-pro" && record.status !== "fallback") {
+    return;
+  }
+
+  const detail = record.notice?.trim();
+  throw new Error(
+    detail
+      ? `${sectionLabel} record is unavailable from Pyth Pro. ${detail}`
+      : `${sectionLabel} record is unavailable from Pyth Pro for the selected feed and timestamp.`,
+  );
+}
+
 async function fetchPythSymbols(query: string) {
   const search = new URLSearchParams();
 
@@ -1964,8 +1977,12 @@ export function TradeTrialExperience() {
         : "Mock Fallback";
   const visibleSymbolResults =
     showSymbolResults || assetSearchQuery.trim().toLowerCase() !== asset.toLowerCase();
+  const requiresLivePythRecord = stillOpen && source !== "pyth-pro";
   const canStartTrial =
-    Boolean(enteredAt) && (stillOpen || Boolean(closedAt)) && effectiveEntryPrice > 0;
+    Boolean(enteredAt) &&
+    (stillOpen || Boolean(closedAt)) &&
+    effectiveEntryPrice > 0 &&
+    !requiresLivePythRecord;
   const filingSummary = [
     asset,
     intent === "Long" ? "Buy" : intent === "Short" ? "Sell" : "Exit",
@@ -2083,6 +2100,11 @@ export function TradeTrialExperience() {
         closeRecordPromise,
       ]);
 
+      requirePythRecord(entryRecord, "Entry");
+      if (!stillOpen && closedAt && closeRecord) {
+        requirePythRecord(closeRecord, "Close");
+      }
+
       const entryLeg: TrialLeg = {
         asset: entryRecord.input.asset,
         enteredAtLabel,
@@ -2150,6 +2172,14 @@ export function TradeTrialExperience() {
         followUpLabel = "Close";
         followUpMode = "close";
       } else if (stillOpen) {
+        if (source !== "pyth-pro" || status === "fallback") {
+          throw new Error(
+            notice?.trim()
+              ? `Current position record is unavailable from Pyth Pro. ${notice}`
+              : "Current position record is unavailable from Pyth Pro right now.",
+          );
+        }
+
         followUpLeg = {
           asset: activeInput.asset,
           enteredAtLabel: "Current Position",
@@ -2591,6 +2621,8 @@ export function TradeTrialExperience() {
               <p className="intakeFootnote">
                 {preparationError
                   ? preparationError
+                  : requiresLivePythRecord
+                    ? "Current-position cases require a live Pyth Pro record before the hearing can begin."
                   : `Each case leg is reconstructed from ${selectedMarket.symbol} using filed Pyth evidence before the hearing begins.`}
               </p>
               <button
@@ -2603,7 +2635,9 @@ export function TradeTrialExperience() {
                   ? "Preparing Case..."
                   : canStartTrial
                     ? "Start Trial"
-                    : "Fill Required Fields"}
+                    : requiresLivePythRecord
+                      ? "Waiting For Pyth Pro"
+                      : "Fill Required Fields"}
               </button>
             </div>
           </section>
