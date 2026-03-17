@@ -38,6 +38,13 @@ export type MarketRecord = {
   channel?: Channel;
 };
 
+export type HistoricalCoverageHint = {
+  available: boolean;
+  earliestDayStartMs?: number;
+  earliestSampledAtMs?: number;
+  notice: string;
+};
+
 type HistoricalPoint = {
   sampledAtMs: number;
   price: number;
@@ -53,6 +60,7 @@ type MarketSelectionInput = Partial<Omit<MarketSelection, "minChannel">> & {
 
 const baselineCache = new Map<string, BaselineState>();
 const symbolSearchCache = new Map<string, PythSymbolOption[]>();
+const historicalCoverageCache = new Map<string, HistoricalCoverageHint>();
 
 let clientPromise: Promise<PythLazerClient> | null = null;
 
@@ -193,6 +201,149 @@ function getChannelCandidates(channel: Channel) {
   }
 
   return ["fixed_rate@200ms"] satisfies Channel[];
+}
+
+async function findHistoricalPointAtTimestamp(
+  client: PythLazerClient,
+  selection: MarketSelection,
+  timestampMs: number,
+) {
+  try {
+    const point = await fetchHistoricalPoint(client, selection, timestampMs);
+    return point;
+  } catch {
+    return null;
+  }
+}
+
+async function findHistoricalPointForDay(
+  client: PythLazerClient,
+  selection: MarketSelection,
+  year: number,
+  monthIndex: number,
+  day: number,
+) {
+  const probeHours = [12, 16, 20];
+
+  for (const hour of probeHours) {
+    const timestampMs = Date.UTC(year, monthIndex, day, hour, 0, 0, 0);
+    const point = await findHistoricalPointAtTimestamp(client, selection, timestampMs);
+    if (point) {
+      return point;
+    }
+  }
+
+  return null;
+}
+
+export async function getHistoricalCoverageHint(
+  selectionInput: MarketSelectionInput,
+) {
+  const selection = resolveSelection(selectionInput);
+  const cacheKey = `coverage:${getSelectionKey(selection)}`;
+  const cached = historicalCoverageCache.get(cacheKey);
+
+  if (cached) {
+    return cached;
+  }
+
+  try {
+    const client = await getClient();
+    const now = new Date();
+    const lookbackMonths = 24;
+    let oldestAvailableMonth:
+      | {
+          year: number;
+          monthIndex: number;
+        }
+      | null = null;
+    let sawAvailable = false;
+
+    for (let offset = 0; offset <= lookbackMonths; offset += 1) {
+      const probeDate = new Date(
+        Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - offset, 15, 12, 0, 0, 0),
+      );
+      const year = probeDate.getUTCFullYear();
+      const monthIndex = probeDate.getUTCMonth();
+      const monthAvailability = await Promise.any(
+        [5, 15, 25].map(async (day) => {
+          const maxDay = new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
+          const safeDay = Math.min(day, maxDay);
+          const point = await findHistoricalPointForDay(
+            client,
+            selection,
+            year,
+            monthIndex,
+            safeDay,
+          );
+
+          if (!point) {
+            throw new Error("No point");
+          }
+
+          return point;
+        }),
+      ).catch(() => null);
+
+      if (monthAvailability) {
+        sawAvailable = true;
+        oldestAvailableMonth = { year, monthIndex };
+        continue;
+      }
+
+      if (sawAvailable) {
+        break;
+      }
+    }
+
+    if (!oldestAvailableMonth) {
+      const result = {
+        available: false,
+        notice: `Historical coverage could not be confirmed for ${selection.symbol} with the current Pyth Pro access.`,
+      } satisfies HistoricalCoverageHint;
+      historicalCoverageCache.set(cacheKey, result);
+      return result;
+    }
+
+    const { year, monthIndex } = oldestAvailableMonth;
+    const maxDay = new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
+    let earliestPoint: Awaited<ReturnType<typeof findHistoricalPointForDay>> | null = null;
+    let earliestDayStartMs: number | undefined;
+
+    for (let day = 1; day <= maxDay; day += 1) {
+      const point = await findHistoricalPointForDay(client, selection, year, monthIndex, day);
+      if (point) {
+        earliestPoint = point;
+        earliestDayStartMs = Date.UTC(year, monthIndex, day, 0, 0, 0, 0);
+        break;
+      }
+    }
+
+    const result = {
+      available: Boolean(earliestPoint && earliestDayStartMs),
+      earliestDayStartMs,
+      earliestSampledAtMs: earliestPoint?.sampledAtMs,
+      notice:
+        earliestPoint && earliestDayStartMs
+          ? `Historical coverage detected from ${new Date(earliestDayStartMs).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })} for ${selection.symbol}.`
+          : `Historical coverage could not be refined for ${selection.symbol}, but recent records do exist.`,
+    } satisfies HistoricalCoverageHint;
+
+    historicalCoverageCache.set(cacheKey, result);
+    return result;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const result = {
+      available: false,
+      notice: `Historical coverage check unavailable. ${formatFallbackNotice(message)}`,
+    } satisfies HistoricalCoverageHint;
+    historicalCoverageCache.set(cacheKey, result);
+    return result;
+  }
 }
 
 export async function searchPythSymbols(query?: string) {

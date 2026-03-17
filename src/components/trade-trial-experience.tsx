@@ -136,6 +136,13 @@ type PythSymbolSearchPayload = {
   error?: string;
 };
 
+type HistoricalCoveragePayload = {
+  available: boolean;
+  earliestDayStartMs?: number;
+  earliestSampledAtMs?: number;
+  notice: string;
+};
+
 type DialogueEnhancementPayload = {
   asset: string;
   action: string;
@@ -1436,6 +1443,21 @@ async function fetchPythSymbols(query: string) {
   return payload.symbols;
 }
 
+async function fetchHistoricalCoverage(selection: MarketSelection) {
+  const search = new URLSearchParams();
+  appendMarketSelection(search, selection);
+
+  const response = await fetch(`/api/historical-coverage?${search.toString()}`, {
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to check historical coverage (${response.status})`);
+  }
+
+  return (await response.json()) as HistoricalCoveragePayload;
+}
+
 async function fetchEnhancedDialogue(payload: DialogueEnhancementPayload, timeoutMs = 1_250) {
   const controller = new AbortController();
   const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
@@ -1543,6 +1565,9 @@ export function TradeTrialExperience() {
   const [assetSearchQuery, setAssetSearchQuery] = useState(
     DEFAULT_MARKET_SELECTION.asset,
   );
+  const [historicalCoverage, setHistoricalCoverage] =
+    useState<HistoricalCoveragePayload | null>(null);
+  const [isCheckingHistoricalCoverage, setIsCheckingHistoricalCoverage] = useState(false);
   const [symbolResults, setSymbolResults] = useState<PythSymbolOption[]>(
     FEATURED_PYTH_SYMBOLS,
   );
@@ -1638,6 +1663,35 @@ export function TradeTrialExperience() {
       window.clearTimeout(timeout);
     };
   }, [assetSearchQuery, showSymbolResults]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const run = async () => {
+      setIsCheckingHistoricalCoverage(true);
+
+      try {
+        const coverage = await fetchHistoricalCoverage(selectedMarket);
+        if (!cancelled) {
+          setHistoricalCoverage(coverage);
+        }
+      } catch {
+        if (!cancelled) {
+          setHistoricalCoverage(null);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsCheckingHistoricalCoverage(false);
+        }
+      }
+    };
+
+    void run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedMarket]);
 
   useEffect(() => {
     setEntryPriceTouched(false);
@@ -1977,12 +2031,44 @@ export function TradeTrialExperience() {
         : "Mock Fallback";
   const visibleSymbolResults =
     showSymbolResults || assetSearchQuery.trim().toLowerCase() !== asset.toLowerCase();
+  const parsedEnteredAtMs = new Date(enteredAt).getTime();
+  const parsedClosedAtMs = closedAt ? new Date(closedAt).getTime() : null;
+  const historicalCoverageFloorMs = historicalCoverage?.earliestDayStartMs;
+  const historicalCoverageLabel =
+    historicalCoverageFloorMs !== undefined
+      ? new Intl.DateTimeFormat("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        }).format(historicalCoverageFloorMs)
+      : null;
+  const isEntryBeforeCoverage =
+    historicalCoverageFloorMs !== undefined &&
+    Number.isFinite(parsedEnteredAtMs) &&
+    parsedEnteredAtMs < historicalCoverageFloorMs;
+  const isCloseBeforeCoverage =
+    historicalCoverageFloorMs !== undefined &&
+    !stillOpen &&
+    parsedClosedAtMs !== null &&
+    Number.isFinite(parsedClosedAtMs) &&
+    parsedClosedAtMs < historicalCoverageFloorMs;
+  const coverageWarning = isEntryBeforeCoverage
+    ? historicalCoverageLabel
+      ? `Entry time is earlier than the detected Pyth coverage for this feed. Try ${historicalCoverageLabel} or later.`
+      : "Entry time is earlier than the detected Pyth coverage for this feed."
+    : isCloseBeforeCoverage
+      ? historicalCoverageLabel
+        ? `Close time is earlier than the detected Pyth coverage for this feed. Try ${historicalCoverageLabel} or later.`
+        : "Close time is earlier than the detected Pyth coverage for this feed."
+      : null;
   const requiresLivePythRecord = stillOpen && source !== "pyth-pro";
   const canStartTrial =
     Boolean(enteredAt) &&
     (stillOpen || Boolean(closedAt)) &&
     effectiveEntryPrice > 0 &&
-    !requiresLivePythRecord;
+    !requiresLivePythRecord &&
+    !coverageWarning &&
+    !isCheckingHistoricalCoverage;
   const filingSummary = [
     asset,
     intent === "Long" ? "Buy" : intent === "Short" ? "Sell" : "Exit",
@@ -2400,6 +2486,12 @@ export function TradeTrialExperience() {
               <div className="fieldHint">
                 Selected feed: {selectedMarket.symbol}
               </div>
+              <div className="fieldHint">
+                {isCheckingHistoricalCoverage
+                  ? "Checking historical coverage for this feed..."
+                  : historicalCoverage?.notice ??
+                    "Historical coverage for this feed has not been checked yet."}
+              </div>
               {visibleSymbolResults ? (
                 <div className="symbolSearchResults" role="listbox" aria-label="Pyth symbol search">
                   {isSearchingSymbols ? (
@@ -2460,6 +2552,11 @@ export function TradeTrialExperience() {
               <input
                 type="datetime-local"
                 value={enteredAt}
+                min={
+                  historicalCoverageFloorMs !== undefined
+                    ? toDateTimeLocalValue(new Date(historicalCoverageFloorMs))
+                    : undefined
+                }
                 onChange={(event) => setEnteredAt(event.target.value)}
                 className="ticketInput"
               />
@@ -2470,6 +2567,11 @@ export function TradeTrialExperience() {
               <input
                 type="datetime-local"
                 value={closedAt}
+                min={
+                  historicalCoverageFloorMs !== undefined
+                    ? toDateTimeLocalValue(new Date(historicalCoverageFloorMs))
+                    : undefined
+                }
                 onChange={(event) => setClosedAt(event.target.value)}
                 className="ticketInput"
                 disabled={stillOpen}
@@ -2621,8 +2723,12 @@ export function TradeTrialExperience() {
               <p className="intakeFootnote">
                 {preparationError
                   ? preparationError
+                  : coverageWarning
+                    ? coverageWarning
                   : requiresLivePythRecord
                     ? "Current-position cases require a live Pyth Pro record before the hearing can begin."
+                  : isCheckingHistoricalCoverage
+                    ? "Checking historical coverage for this feed before the hearing opens."
                   : `Each case leg is reconstructed from ${selectedMarket.symbol} using filed Pyth evidence before the hearing begins.`}
               </p>
               <button
@@ -2635,8 +2741,12 @@ export function TradeTrialExperience() {
                   ? "Preparing Case..."
                   : canStartTrial
                     ? "Start Trial"
+                    : coverageWarning
+                      ? "Outside Coverage"
                     : requiresLivePythRecord
                       ? "Waiting For Pyth Pro"
+                      : isCheckingHistoricalCoverage
+                        ? "Checking Coverage"
                       : "Fill Required Fields"}
               </button>
             </div>
