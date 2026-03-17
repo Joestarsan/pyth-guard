@@ -93,6 +93,10 @@ type TrialRun = {
   enteredAtLabel: string;
   beats: TrialBeat[];
   verdict: VerdictBoard;
+  verdictSpeech?: string;
+  verdictSummary?: string;
+  verdictReasons?: string[];
+  verdictGuidance?: string;
 };
 
 type TrialLeg = {
@@ -120,6 +124,45 @@ type MarketRecordPayload = {
 type PythSymbolSearchPayload = {
   symbols: PythSymbolOption[];
   error?: string;
+};
+
+type DialogueEnhancementPayload = {
+  asset: string;
+  action: string;
+  caseLine: string;
+  beats: Array<{
+    id: string;
+    speaker: CourtRole;
+    tone: TrialTone;
+    headline: string;
+    speech: string;
+    proofs: Array<{
+      label: string;
+      value: string;
+      delta: string;
+      source: string;
+      note: string;
+    }>;
+  }>;
+  verdict: {
+    outcome: VerdictBoard["outcome"];
+    stamp: string;
+    summary: string;
+    reasons: string[];
+    guidance: string;
+  };
+};
+
+type DialogueEnhancementResponse = {
+  enhanced: boolean;
+  beats?: Array<{
+    id: string;
+    speech: string;
+  }>;
+  verdictSpeech?: string;
+  verdictSummary?: string;
+  verdictReasons?: string[];
+  verdictGuidance?: string;
 };
 
 const rolePortraits: Record<
@@ -1336,6 +1379,66 @@ async function fetchPythSymbols(query: string) {
   return payload.symbols;
 }
 
+async function fetchEnhancedDialogue(payload: DialogueEnhancementPayload, timeoutMs = 1_250) {
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch("/api/trial-dialogue", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      cache: "no-store",
+      signal: controller.signal,
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const result = (await response.json()) as DialogueEnhancementResponse;
+    if (!result.enhanced) {
+      return null;
+    }
+
+    return result;
+  } catch {
+    return null;
+  } finally {
+    window.clearTimeout(timeout);
+  }
+}
+
+function applyDialogueEnhancement(
+  run: TrialRun,
+  enhancement: DialogueEnhancementResponse | null,
+) {
+  if (!enhancement?.enhanced) {
+    return run;
+  }
+
+  const nextSpeeches = new Map(
+    (enhancement.beats ?? []).map((beat) => [beat.id, beat.speech]),
+  );
+
+  return {
+    ...run,
+    beats: run.beats.map((beat) => ({
+      ...beat,
+      speech: nextSpeeches.get(beat.id) ?? beat.speech,
+    })),
+    verdictSpeech: enhancement.verdictSpeech ?? run.verdictSpeech,
+    verdictSummary: enhancement.verdictSummary ?? run.verdictSummary,
+    verdictReasons:
+      enhancement.verdictReasons && enhancement.verdictReasons.length > 0
+        ? enhancement.verdictReasons
+        : run.verdictReasons,
+    verdictGuidance: enhancement.verdictGuidance ?? run.verdictGuidance,
+  } satisfies TrialRun;
+}
+
 function getRecordSourceLabel(record: MarketRecordPayload) {
   return record.source === "pyth-pro" ? "Pyth Pro Record" : "Mock Fallback";
 }
@@ -1503,6 +1606,12 @@ export function TradeTrialExperience() {
 
   const activeBeat = trialRun?.beats[activeBeatIndex] ?? null;
   const activeVerdict = trialRun?.verdict ?? null;
+  const activeVerdictSpeech =
+    phase === "verdict"
+      ? trialRun?.verdictSpeech ?? (activeVerdict ? getVerdictSpeech(activeVerdict) : "")
+      : "";
+  const activeVerdictSummary = trialRun?.verdictSummary ?? activeVerdict?.summary ?? "";
+  const activeVerdictGuidance = trialRun?.verdictGuidance ?? activeVerdict?.guidance ?? "";
   const verdictOutcomeClass = activeVerdict?.outcome.toLowerCase() ?? "";
   const activeSpeaker =
     phase === "opening" || phase === "renderVerdict" || phase === "verdict"
@@ -1518,17 +1627,13 @@ export function TradeTrialExperience() {
     phase === "opening"
       ? openingSpeech.slice(0, typedCharacters)
       : phase === "verdict"
-      ? activeVerdict
-        ? getVerdictSpeech(activeVerdict).slice(0, typedCharacters)
-        : ""
+      ? activeVerdictSpeech.slice(0, typedCharacters)
       : activeBeat?.speech.slice(0, typedCharacters) ?? "";
   const isTyping =
     phase === "opening"
       ? typedCharacters < openingSpeech.length
       : phase === "verdict"
-      ? activeVerdict
-        ? typedCharacters < getVerdictSpeech(activeVerdict).length
-        : false
+      ? typedCharacters < activeVerdictSpeech.length
       : activeBeat
         ? typedCharacters < activeBeat.speech.length
         : false;
@@ -1651,7 +1756,7 @@ export function TradeTrialExperience() {
       return;
     }
 
-    const speech = getVerdictSpeech(activeVerdict);
+    const speech = activeVerdictSpeech;
     const typeDuration = Math.max(1_100, speech.length * 18);
     const typeStepMs = Math.max(
       18,
@@ -1687,7 +1792,7 @@ export function TradeTrialExperience() {
       window.clearInterval(typingInterval);
       window.clearTimeout(stampTimeout);
     };
-  }, [phase, activeVerdict]);
+  }, [activeVerdict, activeVerdictSpeech, phase]);
 
   useEffect(() => {
     if (!isTyping || typedCharacters === 0) {
@@ -1917,7 +2022,7 @@ export function TradeTrialExperience() {
         : phase === "verdict" && activeVerdict
           ? `tone${activeVerdict.outcome.toLowerCase()}`
           : "";
-  const headlineReasons = activeVerdict?.reasons.slice(0, 2) ?? [];
+  const headlineReasons = trialRun?.verdictReasons ?? activeVerdict?.reasons.slice(0, 2) ?? [];
 
   async function startTrial() {
     setIsPreparingTrial(true);
@@ -2052,7 +2157,35 @@ export function TradeTrialExperience() {
         }),
       } satisfies TrialRun;
 
-      setTrialRun(nextRun);
+      const enhancedDialogue = await fetchEnhancedDialogue({
+        asset: entryLeg.asset,
+        action: getTradeActionLabel(intent),
+        caseLine: compactFilingLine,
+        beats: nextRun.beats.map((beat) => ({
+          id: beat.id,
+          speaker: beat.speaker,
+          tone: beat.tone,
+          headline: beat.headline,
+          speech: beat.speech,
+          proofs: beat.proofs.map((proof) => ({
+            label: proof.label,
+            value: proof.value,
+            delta: proof.delta,
+            source: proof.source,
+            note: proof.note,
+          })),
+        })),
+        verdict: {
+          outcome: nextRun.verdict.outcome,
+          stamp: nextRun.verdict.stamp,
+          summary: nextRun.verdict.summary,
+          reasons: nextRun.verdict.reasons,
+          guidance: nextRun.verdict.guidance,
+        },
+      });
+      const preparedRun = applyDialogueEnhancement(nextRun, enhancedDialogue);
+
+      setTrialRun(preparedRun);
       setActiveBeatIndex(0);
       setSelectedProofIndex(0);
       setTypedCharacters(0);
@@ -2820,7 +2953,7 @@ export function TradeTrialExperience() {
         </section>
 
         <section className="verdictPanelFull">
-          <p className="verdictHeroSummary">{activeVerdict.summary}</p>
+          <p className="verdictHeroSummary">{activeVerdictSummary}</p>
 
           <article className="verdictGuidancePanel">
             <span className="panelEyebrow">Why The Court Ruled This Way</span>
@@ -2834,7 +2967,7 @@ export function TradeTrialExperience() {
               </div>
             ) : null}
             <span className="panelEyebrow">Judge's Note</span>
-            <p>{activeVerdict.guidance}</p>
+            <p>{activeVerdictGuidance}</p>
           </article>
 
           <div className="verdictActionRow">
