@@ -1,7 +1,8 @@
 import { MarketInput } from "@/lib/mock-market-state";
+import { MarketSelection } from "@/lib/pyth/symbols";
 
 export type SubscriptionParams = {
-  asset?: string;
+  selection?: MarketSelection;
   intervalMs?: number;
 };
 
@@ -17,6 +18,7 @@ export type MarketUpdate = {
   notice?: string;
   baselineSamples?: number;
   baselineTarget?: number;
+  channel?: string;
 };
 
 export type Unsubscribe = () => void;

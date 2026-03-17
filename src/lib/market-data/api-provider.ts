@@ -1,17 +1,19 @@
 import { MarketDataProvider, MarketUpdate, SubscriptionParams } from "@/lib/market-data/types";
+import { appendMarketSelection, DEFAULT_MARKET_SELECTION } from "@/lib/pyth/symbols";
 
 export class ApiMarketProvider implements MarketDataProvider {
   subscribe(
     params: SubscriptionParams,
     onUpdate: Parameters<MarketDataProvider["subscribe"]>[1],
   ) {
-    const asset = params.asset ?? "BTC / USD";
+    const selection = params.selection ?? DEFAULT_MARKET_SELECTION;
     const intervalMs = params.intervalMs ?? 1800;
     let aborted = false;
 
     const fetchUpdate = async () => {
       try {
-        const search = new URLSearchParams({ asset });
+        const search = new URLSearchParams();
+        appendMarketSelection(search, selection);
         const response = await fetch(`/api/live-market?${search.toString()}`, {
           cache: "no-store",
         });

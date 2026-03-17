@@ -8,19 +8,20 @@ import {
   MarketStreamStatus,
 } from "@/lib/market-data/types";
 import { MarketInput, MarketState } from "@/lib/mock-market-state";
+import { MarketSelection } from "@/lib/pyth/symbols";
 import { computeMarketState } from "@/lib/trust-engine";
 
 const DEFAULT_SEED_TIMELINE = [86, 84, 83, 82, 84, 86];
 
 type UseMarketStreamOptions = {
-  asset?: string;
+  selection?: MarketSelection;
   provider: MarketDataProvider;
   seedTimeline?: number[];
   intervalMs?: number;
 };
 
 export function useMarketStream({
-  asset,
+  selection,
   provider,
   seedTimeline = DEFAULT_SEED_TIMELINE,
   intervalMs,
@@ -33,6 +34,7 @@ export function useMarketStream({
   const [notice, setNotice] = useState<string | undefined>();
   const [baselineSamples, setBaselineSamples] = useState<number | undefined>();
   const [baselineTarget, setBaselineTarget] = useState<number | undefined>();
+  const [channel, setChannel] = useState<string | undefined>();
 
   useEffect(() => {
     setFrameIndex(0);
@@ -43,9 +45,10 @@ export function useMarketStream({
     setNotice(undefined);
     setBaselineSamples(undefined);
     setBaselineTarget(undefined);
+    setChannel(undefined);
 
     const unsubscribe = provider.subscribe(
-      { asset, intervalMs },
+      { selection, intervalMs },
       ({
         frameIndex: nextFrameIndex,
         input,
@@ -54,6 +57,7 @@ export function useMarketStream({
         notice: nextNotice,
         baselineSamples: nextBaselineSamples,
         baselineTarget: nextBaselineTarget,
+        channel: nextChannel,
       }) => {
         setFrameIndex(nextFrameIndex);
         setInput(input);
@@ -62,6 +66,7 @@ export function useMarketStream({
         setNotice(nextNotice);
         setBaselineSamples(nextBaselineSamples);
         setBaselineTarget(nextBaselineTarget);
+        setChannel(nextChannel);
         setState((current) => {
           const nextTimeline =
             current === null
@@ -74,7 +79,7 @@ export function useMarketStream({
     );
 
     return unsubscribe;
-  }, [asset, intervalMs, provider, seedTimeline]);
+  }, [intervalMs, provider, seedTimeline, selection]);
 
   return {
     frameIndex,
@@ -85,5 +90,6 @@ export function useMarketStream({
     notice,
     baselineSamples,
     baselineTarget,
+    channel,
   };
 }

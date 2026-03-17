@@ -1131,8 +1131,135 @@ button {
   transform: scale(0.82) rotate(-8deg);
 }
 
+.impactStamp.toneattack {
+  color: rgba(255, 235, 240, 0.98);
+  text-shadow:
+    6px 6px 0 rgba(92, 16, 43, 0.82),
+    0 0 30px rgba(251, 113, 133, 0.28);
+}
+
+.impactStamp.tonedefense {
+  color: rgba(235, 255, 246, 0.98);
+  text-shadow:
+    6px 6px 0 rgba(10, 70, 49, 0.82),
+    0 0 30px rgba(52, 211, 153, 0.26);
+}
+
+.impactStamp.tonewarning,
+.impactStamp.tonecontested {
+  color: rgba(255, 243, 220, 0.98);
+  text-shadow:
+    6px 6px 0 rgba(102, 62, 0, 0.82),
+    0 0 30px rgba(245, 158, 11, 0.26);
+}
+
+.impactStamp.toneacquitted {
+  color: rgba(228, 255, 244, 0.98);
+  text-shadow:
+    6px 6px 0 rgba(10, 70, 49, 0.82),
+    0 0 32px rgba(52, 211, 153, 0.32);
+}
+
+.impactStamp.toneconvicted {
+  color: rgba(255, 235, 240, 0.98);
+  text-shadow:
+    6px 6px 0 rgba(92, 16, 43, 0.82),
+    0 0 32px rgba(251, 113, 133, 0.34);
+}
+
 .impactStamp.visible {
-  animation: objectionStamp 480ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: objectionStamp 560ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.impactBloom {
+  pointer-events: none;
+  position: fixed;
+  inset: -14%;
+  z-index: 13;
+  opacity: 0;
+  mix-blend-mode: screen;
+  filter: blur(26px);
+}
+
+.impactBloom.visible {
+  animation: impactBloomPulse 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.impactBloom.toneattack {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(251, 113, 133, 0.52), transparent 22%),
+    radial-gradient(circle at 50% 50%, rgba(255, 120, 120, 0.26), transparent 38%),
+    linear-gradient(90deg, transparent 0 14%, rgba(251, 113, 133, 0.14) 14% 18%, transparent 18% 82%, rgba(251, 113, 133, 0.14) 82% 86%, transparent 86%);
+}
+
+.impactBloom.tonedefense,
+.impactBloom.toneacquitted {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(52, 211, 153, 0.46), transparent 22%),
+    radial-gradient(circle at 50% 50%, rgba(110, 255, 205, 0.22), transparent 38%),
+    linear-gradient(90deg, transparent 0 14%, rgba(52, 211, 153, 0.12) 14% 18%, transparent 18% 82%, rgba(52, 211, 153, 0.12) 82% 86%, transparent 86%);
+}
+
+.impactBloom.tonewarning,
+.impactBloom.tonecontested {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(245, 158, 11, 0.46), transparent 22%),
+    radial-gradient(circle at 50% 50%, rgba(255, 211, 93, 0.22), transparent 38%),
+    linear-gradient(90deg, transparent 0 14%, rgba(245, 158, 11, 0.12) 14% 18%, transparent 18% 82%, rgba(245, 158, 11, 0.12) 82% 86%, transparent 86%);
+}
+
+.impactBloom.toneconvicted {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(251, 113, 133, 0.48), transparent 22%),
+    radial-gradient(circle at 50% 50%, rgba(143, 91, 255, 0.18), transparent 40%),
+    linear-gradient(90deg, transparent 0 14%, rgba(251, 113, 133, 0.1) 14% 18%, transparent 18% 82%, rgba(251, 113, 133, 0.1) 82% 86%, transparent 86%);
+}
+
+.impactFlash {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 14;
+  opacity: 0;
+  mix-blend-mode: screen;
+}
+
+.impactFlash.visible {
+  animation: impactFlashBurst 380ms steps(3, end) both;
+}
+
+.impactFlash.toneattack {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(251, 113, 133, 0.42), transparent 28%),
+    radial-gradient(circle at 50% 50%, rgba(255, 220, 230, 0.14), transparent 16%),
+    linear-gradient(135deg, rgba(251, 113, 133, 0.18), transparent 40%),
+    linear-gradient(315deg, rgba(143, 91, 255, 0.18), transparent 46%);
+}
+
+.impactFlash.tonedefense,
+.impactFlash.toneacquitted {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(52, 211, 153, 0.38), transparent 28%),
+    radial-gradient(circle at 50% 50%, rgba(238, 255, 248, 0.14), transparent 16%),
+    linear-gradient(135deg, rgba(52, 211, 153, 0.16), transparent 40%),
+    linear-gradient(315deg, rgba(143, 91, 255, 0.16), transparent 46%);
+}
+
+.impactFlash.tonewarning,
+.impactFlash.tonecontested {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(245, 158, 11, 0.4), transparent 28%),
+    radial-gradient(circle at 50% 50%, rgba(255, 248, 224, 0.14), transparent 16%),
+    linear-gradient(135deg, rgba(245, 158, 11, 0.18), transparent 40%),
+    linear-gradient(315deg, rgba(143, 91, 255, 0.14), transparent 46%);
+}
+
+.impactFlash.toneconvicted {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(251, 113, 133, 0.42), transparent 28%),
+    radial-gradient(circle at 50% 50%, rgba(255, 220, 230, 0.12), transparent 16%),
+    linear-gradient(135deg, rgba(251, 113, 133, 0.2), transparent 40%),
+    linear-gradient(315deg, rgba(90, 28, 145, 0.16), transparent 46%);
 }
 
 .verdictScene {
@@ -1223,6 +1350,20 @@ button {
       rgba(255, 255, 255, 0.012) 5px
     ),
     rgba(255, 255, 255, 0.04);
+  font-family: var(--font-mono), monospace;
+  line-height: 1.65;
+}
+
+.verdictFindingList {
+  display: grid;
+  gap: 10px;
+}
+
+.verdictFindingItem {
+  margin: 0;
+  padding: 12px 14px;
+  border-left: 3px solid rgba(176, 108, 255, 0.42);
+  background: rgba(255, 255, 255, 0.035);
   font-family: var(--font-mono), monospace;
   line-height: 1.65;
 }
@@ -1402,6 +1543,18 @@ button {
   animation: screenShake 260ms steps(2, end);
 }
 
+.trialCourtStage.focusDefense.shockAttack .trialCounselPanel.roleDefense,
+.trialCourtStage.focusProsecutor.shockAttack .trialCounselPanel.roleProsecutor,
+.trialCourtStage.focusJudge.shockAttack .trialJudgeBench {
+  animation: counselKick 240ms steps(2, end);
+}
+
+.trialCourtStage.shockAttack .dialogueConsole {
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 255, 0.04),
+    12px 12px 0 rgba(10, 7, 18, 0.9);
+}
+
 .trialCastLayout {
   position: relative;
   z-index: 1;
@@ -1409,6 +1562,7 @@ button {
   gap: 18px;
   grid-template-columns: minmax(0, 1fr) minmax(280px, 1.08fr) minmax(0, 1fr);
   align-items: end;
+  transition: grid-template-columns 260ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .trialCastLayout.hearingDuel {
@@ -1504,10 +1658,23 @@ button {
     rgba(255, 255, 255, 0.03);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
   transition:
-    transform 180ms ease,
-    opacity 180ms ease,
-    border-color 180ms ease,
-    box-shadow 180ms ease;
+    transform 260ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 240ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 240ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.trialCounselPanel::after,
+.trialJudgeBench::after {
+  content: "";
+  position: absolute;
+  inset: auto 12% 10% 12%;
+  height: 34%;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .trialCounselPanel.stateidle,
@@ -1530,10 +1697,36 @@ button {
     8px 8px 0 rgba(10, 7, 18, 0.74);
 }
 
+.trialCounselPanel.roleDefense.statewinner::after {
+  opacity: 1;
+  transform: scale(1.02);
+  background:
+    radial-gradient(circle at 50% 48%, rgba(52, 211, 153, 0.32), transparent 42%),
+    radial-gradient(circle at 50% 70%, rgba(130, 255, 218, 0.16), transparent 56%);
+  animation: winnerAura 900ms ease-in-out infinite;
+}
+
+.trialCounselPanel.roleProsecutor.statewinner::after {
+  opacity: 1;
+  transform: scale(1.02);
+  background:
+    radial-gradient(circle at 50% 48%, rgba(251, 113, 133, 0.3), transparent 42%),
+    radial-gradient(circle at 50% 70%, rgba(255, 189, 210, 0.14), transparent 56%);
+  animation: winnerAura 900ms ease-in-out infinite;
+}
+
 .trialCounselPanel.stateloser {
   opacity: 0.46;
   transform: translateY(8px);
   filter: saturate(0.72);
+}
+
+.trialCounselPanel.stateloser::after {
+  opacity: 1;
+  transform: scale(0.98);
+  background:
+    radial-gradient(circle at 50% 58%, rgba(0, 0, 0, 0.32), transparent 46%),
+    linear-gradient(180deg, transparent, rgba(9, 7, 19, 0.34));
 }
 
 .trialCounselPanel.roleDefense {
@@ -1789,6 +1982,31 @@ button {
   animation: portraitGavel 320ms ease-in-out infinite;
 }
 
+.courtPortrait.expressioncelebrate .courtPortraitInner {
+  border-color: rgba(255, 255, 255, 0.24);
+  box-shadow:
+    0 18px 0 rgba(10, 7, 18, 0.86),
+    0 0 0 3px rgba(255, 255, 255, 0.06),
+    inset 0 0 0 1px rgba(10, 7, 18, 0.7);
+}
+
+.courtPortrait.expressioncelebrate .courtPortraitImage {
+  animation: portraitCelebrate 560ms steps(2, end) infinite;
+  filter: contrast(1.14) saturate(1.06) brightness(1.08);
+}
+
+.courtPortrait.expressiondefeated .courtPortraitInner {
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 12px 0 rgba(10, 7, 18, 0.78),
+    inset 0 0 0 1px rgba(10, 7, 18, 0.72);
+}
+
+.courtPortrait.expressiondefeated .courtPortraitImage {
+  animation: portraitDefeated 860ms ease-in-out infinite;
+  filter: contrast(1.04) saturate(0.76) brightness(0.88);
+}
+
 .courtPortrait.stateloser {
   opacity: 0.46;
   filter: saturate(0.7) brightness(0.9);
@@ -1832,6 +2050,10 @@ button {
   position: relative;
   z-index: 1;
   width: min(940px, 100%);
+  transition:
+    margin 240ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 240ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .trialSpeakerFocusRow {
@@ -1839,6 +2061,7 @@ button {
   z-index: 1;
   display: flex;
   width: 100%;
+  transition: padding 240ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .trialSpeakerFocusRow.focusDefense {
@@ -1892,6 +2115,10 @@ button {
   box-shadow:
     inset 0 0 0 2px rgba(255, 255, 255, 0.03),
     8px 8px 0 rgba(10, 7, 18, 0.74);
+  transition:
+    margin 240ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 240ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .trialProofBoard.alignDefense {
@@ -2143,6 +2370,27 @@ button.trialProofCard {
 
 .verdictCourtStage {
   width: min(1480px, 100%);
+}
+
+.verdictCourtStage.outcomeacquitted {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 0 0 2px rgba(52, 211, 153, 0.12),
+    0 30px 80px rgba(9, 54, 36, 0.22);
+}
+
+.verdictCourtStage.outcomeconvicted {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 0 0 2px rgba(251, 113, 133, 0.12),
+    0 30px 80px rgba(76, 15, 36, 0.24);
+}
+
+.verdictCourtStage.outcomecontested {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 0 0 2px rgba(245, 158, 11, 0.12),
+    0 30px 80px rgba(84, 49, 0, 0.2);
 }
 
 .rulingConsole {
@@ -2620,6 +2868,74 @@ button.trialProofCard {
   font-size: 0.86rem;
 }
 
+.symbolSearchResults {
+  width: 100%;
+  display: grid;
+  gap: 8px;
+  max-height: 220px;
+  margin-top: 10px;
+  padding: 10px;
+  overflow-y: auto;
+  border: 1px solid rgba(176, 108, 255, 0.16);
+  border-radius: 0;
+  background:
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.03) 0,
+      rgba(255, 255, 255, 0.03) 2px,
+      rgba(255, 255, 255, 0.01) 2px,
+      rgba(255, 255, 255, 0.01) 6px
+    ),
+    rgba(12, 8, 24, 0.9);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.03),
+    6px 6px 0 rgba(10, 7, 18, 0.42);
+}
+
+.symbolResultButton {
+  width: 100%;
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  text-align: left;
+  font-family: var(--font-mono), monospace;
+  box-shadow: 4px 4px 0 rgba(10, 7, 18, 0.44);
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    background 160ms ease;
+}
+
+.symbolResultButton:hover,
+.symbolResultButton.active {
+  transform: translate(-2px, -2px);
+  border-color: rgba(176, 108, 255, 0.42);
+  background: linear-gradient(135deg, rgba(143, 91, 255, 0.22), rgba(213, 106, 255, 0.1));
+}
+
+.symbolResultAsset {
+  font-size: 0.94rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.symbolResultMeta,
+.symbolSearchStatus {
+  color: var(--muted);
+  font-family: var(--font-mono), monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  line-height: 1.5;
+}
+
+.symbolSearchStatus.subtle {
+  color: rgba(245, 158, 11, 0.9);
+}
+
 .fieldControlRow {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -2670,6 +2986,7 @@ button.trialProofCard {
 .modeActionButton:focus,
 .assetSwitchButton:focus,
 .actionChip:focus,
+.symbolResultButton:focus,
 .trialCloseButton:focus {
   outline: 2px solid rgba(176, 108, 255, 0.52);
   outline-offset: 2px;
@@ -3817,6 +4134,53 @@ button.trialProofCard {
   }
 }
 
+@keyframes impactFlashBurst {
+  0% {
+    opacity: 0;
+  }
+  18% {
+    opacity: 0.6;
+  }
+  38% {
+    opacity: 0.96;
+  }
+  58% {
+    opacity: 0.34;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes impactBloomPulse {
+  0% {
+    opacity: 0;
+    transform: scale(0.86);
+  }
+  26% {
+    opacity: 0.88;
+  }
+  56% {
+    opacity: 0.42;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.12);
+  }
+}
+
+@keyframes counselKick {
+  0% {
+    transform: translateY(-10px) scale(1.04);
+  }
+  50% {
+    transform: translateY(-18px) scale(1.08);
+  }
+  100% {
+    transform: translateY(-10px) scale(1.04);
+  }
+}
+
 @keyframes portraitTalk {
   0%,
   100% {
@@ -3850,6 +4214,44 @@ button.trialProofCard {
   }
   70% {
     transform: translateY(2px) scale(1.03);
+  }
+}
+
+@keyframes portraitCelebrate {
+  0%,
+  100% {
+    transform: translateY(0) scale(1.06) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-5px) scale(1.09) rotate(-0.8deg);
+  }
+  55% {
+    transform: translateY(-1px) scale(1.07) rotate(0.7deg);
+  }
+}
+
+@keyframes portraitDefeated {
+  0%,
+  100% {
+    transform: translateY(8px) scale(0.98) rotate(0deg);
+  }
+  30% {
+    transform: translateY(11px) scale(0.97) rotate(-0.5deg);
+  }
+  65% {
+    transform: translateY(9px) scale(0.975) rotate(0.4deg);
+  }
+}
+
+@keyframes winnerAura {
+  0%,
+  100% {
+    opacity: 0.78;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
   }
 }
 
@@ -4270,6 +4672,10 @@ button.trialProofCard {
   box-shadow:
     0 0 0 2px rgba(123, 127, 255, 0.12),
     10px 10px 0 rgba(8, 5, 18, 0.88);
+  transition:
+    margin 240ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 240ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 220ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .trialEvidenceLedger.alignDefense {

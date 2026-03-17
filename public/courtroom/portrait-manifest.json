@@ -1,16 +1,11 @@
 {
-  "generatedAt": "2026-03-17T10:55:17.291Z",
+  "generatedAt": "2026-03-17T15:51:18.183Z",
   "model": "black-forest-labs/flux.2-flex",
   "portraits": [
     {
-      "id": "defense",
-      "label": "Trader Defense",
-      "file": "public/courtroom/defense.png"
-    },
-    {
-      "id": "prosecutor",
-      "label": "Prosecutor",
-      "file": "public/courtroom/prosecutor.png"
+      "id": "defense-defeated",
+      "label": "Planck Defeated",
+      "file": "public/courtroom/defense-defeated.png"
     }
   ]
 }

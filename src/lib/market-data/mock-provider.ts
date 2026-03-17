@@ -6,8 +6,8 @@ export class MockScenarioProvider implements MarketDataProvider {
     params: SubscriptionParams,
     onUpdate: Parameters<MarketDataProvider["subscribe"]>[1],
   ) {
-    const frames = params.asset
-      ? mockScenarioFrames.filter((frame) => frame.asset === params.asset)
+    const frames = params.selection?.asset
+      ? mockScenarioFrames.filter((frame) => frame.asset === params.selection?.asset)
       : mockScenarioFrames;
 
     const intervalMs = params.intervalMs ?? 1800;

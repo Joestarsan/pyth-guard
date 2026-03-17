@@ -9,10 +9,17 @@ import {
   EvidenceTrend,
   MarketInput,
   MarketState,
-  supportedAssets,
-  SupportedAsset,
 } from "@/lib/mock-market-state";
 import { apiMarketProvider } from "@/lib/market-data/api-provider";
+import {
+  appendMarketSelection,
+  DEFAULT_MARKET_SELECTION,
+  FEATURED_PYTH_SYMBOLS,
+  formatChannelLabel,
+  MarketSelection,
+  PythSymbolOption,
+  toMarketSelection,
+} from "@/lib/pyth/symbols";
 import {
   assessTradeTicket,
   formatCurrency,
@@ -28,7 +35,15 @@ type TrialPhase = "intake" | "opening" | "trial" | "renderVerdict" | "verdict";
 type CourtRole = (typeof courtroomRoles)[number];
 type TrialTone = "attack" | "defense" | "warning" | "verdict";
 type CourtroomCue = TrialTone | "opening" | "victory" | "defeat" | "gavel";
-type PortraitExpression = "idle" | "speaking" | "emphasis" | "shocked" | "stoic" | "gavel";
+type PortraitExpression =
+  | "idle"
+  | "speaking"
+  | "emphasis"
+  | "shocked"
+  | "stoic"
+  | "gavel"
+  | "celebrate"
+  | "defeated";
 
 type TrialProofCard = {
   id: string;
@@ -51,6 +66,7 @@ type TrialRecordLedger = {
   baselineSamples?: number;
   baselineTarget?: number;
   notice?: string;
+  channel?: string;
 };
 
 type TrialBeat = {
@@ -99,13 +115,43 @@ type MarketRecordPayload = {
   baselineSamples?: number;
   baselineTarget?: number;
   sampledAtMs: number;
+  channel?: string;
 };
 
-const rolePortraits: Record<CourtRole, string> = {
-  Defense: "/courtroom/defense.png",
-  Judge: "/courtroom/judge.png",
-  Prosecutor: "/courtroom/prosecutor.png",
+type PythSymbolSearchPayload = {
+  symbols: PythSymbolOption[];
+  error?: string;
 };
+
+const rolePortraits: Record<
+  CourtRole,
+  Partial<Record<PortraitExpression | "default", string>>
+> = {
+  Defense: {
+    default: "/courtroom/defense.png",
+    emphasis: "/courtroom/defense-emphasis.png",
+    shocked: "/courtroom/defense-shocked.png",
+    celebrate: "/courtroom/defense-celebrate.png",
+    defeated: "/courtroom/defense-defeated.png",
+  },
+  Judge: {
+    default: "/courtroom/judge.png",
+    speaking: "/courtroom/judge-speaking.png",
+    emphasis: "/courtroom/judge-speaking.png",
+    gavel: "/courtroom/judge-gavel.png",
+  },
+  Prosecutor: {
+    default: "/courtroom/prosecutor.png",
+    emphasis: "/courtroom/prosecutor-emphasis.png",
+    shocked: "/courtroom/prosecutor-shocked.png",
+    celebrate: "/courtroom/prosecutor-celebrate.png",
+    defeated: "/courtroom/prosecutor-defeated.png",
+  },
+};
+
+function getPortraitSrc(role: CourtRole, expression: PortraitExpression) {
+  return rolePortraits[role][expression] ?? rolePortraits[role].default ?? "";
+}
 
 function outcomeWeight(outcome: VerdictBoard["outcome"]) {
   if (outcome === "Acquitted") return 1;
@@ -205,6 +251,7 @@ function buildRecordLedger(args: {
   baselineSamples?: number;
   baselineTarget?: number;
   notice?: string;
+  channel?: string;
 }) {
   return {
     sectionLabel: args.sectionLabel,
@@ -216,10 +263,12 @@ function buildRecordLedger(args: {
     baselineSamples: args.baselineSamples,
     baselineTarget: args.baselineTarget,
     notice: args.notice,
+    channel: args.channel,
   } satisfies TrialRecordLedger;
 }
 
 let sharedCourtAudioContext: AudioContext | null = null;
+let sharedNoiseBuffer: AudioBuffer | null = null;
 
 function getCourtAudioContext() {
   if (typeof window === "undefined") return null;
@@ -242,6 +291,88 @@ function getCourtAudioContext() {
   return sharedCourtAudioContext;
 }
 
+function getNoiseBuffer(audioContext: AudioContext) {
+  if (sharedNoiseBuffer && sharedNoiseBuffer.sampleRate === audioContext.sampleRate) {
+    return sharedNoiseBuffer;
+  }
+
+  const buffer = audioContext.createBuffer(1, audioContext.sampleRate * 0.24, audioContext.sampleRate);
+  const channel = buffer.getChannelData(0);
+
+  for (let index = 0; index < channel.length; index += 1) {
+    channel[index] = Math.random() * 2 - 1;
+  }
+
+  sharedNoiseBuffer = buffer;
+  return buffer;
+}
+
+function playNoiseBurst(
+  audioContext: AudioContext,
+  args: {
+    filterType: BiquadFilterType;
+    frequency: number;
+    duration: number;
+    gainValue: number;
+    startTime?: number;
+  },
+) {
+  const source = audioContext.createBufferSource();
+  source.buffer = getNoiseBuffer(audioContext);
+
+  const filter = audioContext.createBiquadFilter();
+  filter.type = args.filterType;
+  filter.frequency.setValueAtTime(args.frequency, audioContext.currentTime);
+
+  const gain = audioContext.createGain();
+  gain.gain.setValueAtTime(0.0001, audioContext.currentTime);
+
+  const startTime = args.startTime ?? audioContext.currentTime;
+  gain.gain.exponentialRampToValueAtTime(args.gainValue, startTime + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001, startTime + args.duration);
+
+  source.connect(filter);
+  filter.connect(gain);
+  gain.connect(audioContext.destination);
+  source.start(startTime);
+  source.stop(startTime + args.duration);
+}
+
+function playAccentTone(
+  audioContext: AudioContext,
+  args: {
+    type: OscillatorType;
+    frequency: number;
+    duration: number;
+    gainValue: number;
+    startTime?: number;
+    endFrequency?: number;
+  },
+) {
+  const oscillator = audioContext.createOscillator();
+  const gain = audioContext.createGain();
+  const startTime = args.startTime ?? audioContext.currentTime;
+
+  oscillator.type = args.type;
+  oscillator.frequency.setValueAtTime(args.frequency, startTime);
+
+  if (args.endFrequency) {
+    oscillator.frequency.exponentialRampToValueAtTime(
+      args.endFrequency,
+      startTime + args.duration,
+    );
+  }
+
+  gain.gain.setValueAtTime(0.0001, startTime);
+  gain.gain.exponentialRampToValueAtTime(args.gainValue, startTime + 0.012);
+  gain.gain.exponentialRampToValueAtTime(0.0001, startTime + args.duration);
+
+  oscillator.connect(gain);
+  gain.connect(audioContext.destination);
+  oscillator.start(startTime);
+  oscillator.stop(startTime + args.duration);
+}
+
 function playCourtroomCue(kind: CourtroomCue) {
   const audioContext = getCourtAudioContext();
   if (!audioContext) return;
@@ -250,10 +381,26 @@ function playCourtroomCue(kind: CourtroomCue) {
   gain.connect(audioContext.destination);
   gain.gain.setValueAtTime(0.0001, audioContext.currentTime);
   gain.gain.exponentialRampToValueAtTime(0.14, audioContext.currentTime + 0.02);
-  gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.66);
+  gain.gain.exponentialRampToValueAtTime(
+    0.0001,
+    audioContext.currentTime +
+      (kind === "victory" ? 0.94 : kind === "defeat" ? 0.82 : 0.66),
+  );
 
   const lead = audioContext.createOscillator();
   const accent = audioContext.createOscillator();
+  const bass = audioContext.createOscillator();
+  const bassGain = audioContext.createGain();
+
+  bass.connect(bassGain);
+  bassGain.connect(audioContext.destination);
+  bassGain.gain.setValueAtTime(0.0001, audioContext.currentTime);
+  bassGain.gain.exponentialRampToValueAtTime(0.05, audioContext.currentTime + 0.016);
+  bassGain.gain.exponentialRampToValueAtTime(
+    0.0001,
+    audioContext.currentTime + (kind === "gavel" ? 0.22 : 0.4),
+  );
+  bass.type = "triangle";
 
   if (kind === "attack") {
     lead.type = "square";
@@ -262,6 +409,14 @@ function playCourtroomCue(kind: CourtroomCue) {
     accent.type = "triangle";
     accent.frequency.setValueAtTime(760, audioContext.currentTime + 0.03);
     accent.frequency.exponentialRampToValueAtTime(320, audioContext.currentTime + 0.24);
+    bass.frequency.setValueAtTime(92, audioContext.currentTime);
+    bass.frequency.exponentialRampToValueAtTime(70, audioContext.currentTime + 0.2);
+    playNoiseBurst(audioContext, {
+      filterType: "highpass",
+      frequency: 980,
+      duration: 0.16,
+      gainValue: 0.07,
+    });
   } else if (kind === "defense") {
     lead.type = "triangle";
     lead.frequency.setValueAtTime(240, audioContext.currentTime);
@@ -269,6 +424,14 @@ function playCourtroomCue(kind: CourtroomCue) {
     accent.type = "sine";
     accent.frequency.setValueAtTime(420, audioContext.currentTime + 0.02);
     accent.frequency.exponentialRampToValueAtTime(680, audioContext.currentTime + 0.22);
+    bass.frequency.setValueAtTime(116, audioContext.currentTime);
+    bass.frequency.exponentialRampToValueAtTime(142, audioContext.currentTime + 0.18);
+    playNoiseBurst(audioContext, {
+      filterType: "bandpass",
+      frequency: 720,
+      duration: 0.12,
+      gainValue: 0.05,
+    });
   } else if (kind === "warning") {
     lead.type = "sawtooth";
     lead.frequency.setValueAtTime(132, audioContext.currentTime);
@@ -276,6 +439,14 @@ function playCourtroomCue(kind: CourtroomCue) {
     accent.type = "square";
     accent.frequency.setValueAtTime(284, audioContext.currentTime + 0.04);
     accent.frequency.exponentialRampToValueAtTime(190, audioContext.currentTime + 0.26);
+    bass.frequency.setValueAtTime(84, audioContext.currentTime);
+    bass.frequency.exponentialRampToValueAtTime(96, audioContext.currentTime + 0.18);
+    playNoiseBurst(audioContext, {
+      filterType: "lowpass",
+      frequency: 680,
+      duration: 0.14,
+      gainValue: 0.06,
+    });
   } else if (kind === "opening") {
     lead.type = "square";
     lead.frequency.setValueAtTime(186, audioContext.currentTime);
@@ -283,20 +454,86 @@ function playCourtroomCue(kind: CourtroomCue) {
     accent.type = "triangle";
     accent.frequency.setValueAtTime(420, audioContext.currentTime + 0.04);
     accent.frequency.exponentialRampToValueAtTime(560, audioContext.currentTime + 0.24);
+    bass.frequency.setValueAtTime(108, audioContext.currentTime);
+    bass.frequency.exponentialRampToValueAtTime(124, audioContext.currentTime + 0.18);
   } else if (kind === "victory") {
     lead.type = "square";
     lead.frequency.setValueAtTime(262, audioContext.currentTime);
-    lead.frequency.exponentialRampToValueAtTime(392, audioContext.currentTime + 0.18);
+    lead.frequency.exponentialRampToValueAtTime(440, audioContext.currentTime + 0.22);
     accent.type = "triangle";
-    accent.frequency.setValueAtTime(523, audioContext.currentTime + 0.06);
-    accent.frequency.exponentialRampToValueAtTime(784, audioContext.currentTime + 0.28);
+    accent.frequency.setValueAtTime(523, audioContext.currentTime + 0.04);
+    accent.frequency.exponentialRampToValueAtTime(880, audioContext.currentTime + 0.34);
+    bass.frequency.setValueAtTime(132, audioContext.currentTime);
+    bass.frequency.exponentialRampToValueAtTime(196, audioContext.currentTime + 0.28);
+    playNoiseBurst(audioContext, {
+      filterType: "bandpass",
+      frequency: 1280,
+      duration: 0.24,
+      gainValue: 0.06,
+      startTime: audioContext.currentTime + 0.02,
+    });
+    playAccentTone(audioContext, {
+      type: "triangle",
+      frequency: 659.25,
+      endFrequency: 783.99,
+      duration: 0.16,
+      gainValue: 0.042,
+      startTime: audioContext.currentTime + 0.14,
+    });
+    playAccentTone(audioContext, {
+      type: "triangle",
+      frequency: 783.99,
+      endFrequency: 1046.5,
+      duration: 0.18,
+      gainValue: 0.04,
+      startTime: audioContext.currentTime + 0.28,
+    });
+    playAccentTone(audioContext, {
+      type: "sine",
+      frequency: 1046.5,
+      endFrequency: 1318.51,
+      duration: 0.24,
+      gainValue: 0.028,
+      startTime: audioContext.currentTime + 0.42,
+    });
+    playNoiseBurst(audioContext, {
+      filterType: "highpass",
+      frequency: 1800,
+      duration: 0.16,
+      gainValue: 0.028,
+      startTime: audioContext.currentTime + 0.44,
+    });
   } else if (kind === "defeat") {
     lead.type = "sawtooth";
     lead.frequency.setValueAtTime(220, audioContext.currentTime);
     lead.frequency.exponentialRampToValueAtTime(132, audioContext.currentTime + 0.22);
     accent.type = "square";
     accent.frequency.setValueAtTime(320, audioContext.currentTime + 0.05);
-    accent.frequency.exponentialRampToValueAtTime(156, audioContext.currentTime + 0.26);
+    accent.frequency.exponentialRampToValueAtTime(144, audioContext.currentTime + 0.28);
+    bass.frequency.setValueAtTime(96, audioContext.currentTime);
+    bass.frequency.exponentialRampToValueAtTime(60, audioContext.currentTime + 0.28);
+    playNoiseBurst(audioContext, {
+      filterType: "lowpass",
+      frequency: 460,
+      duration: 0.24,
+      gainValue: 0.07,
+    });
+    playAccentTone(audioContext, {
+      type: "triangle",
+      frequency: 176,
+      endFrequency: 104,
+      duration: 0.28,
+      gainValue: 0.03,
+      startTime: audioContext.currentTime + 0.16,
+    });
+    playAccentTone(audioContext, {
+      type: "square",
+      frequency: 132,
+      endFrequency: 78,
+      duration: 0.32,
+      gainValue: 0.022,
+      startTime: audioContext.currentTime + 0.28,
+    });
   } else if (kind === "gavel") {
     lead.type = "square";
     lead.frequency.setValueAtTime(118, audioContext.currentTime);
@@ -304,8 +541,16 @@ function playCourtroomCue(kind: CourtroomCue) {
     accent.type = "triangle";
     accent.frequency.setValueAtTime(860, audioContext.currentTime + 0.01);
     accent.frequency.exponentialRampToValueAtTime(240, audioContext.currentTime + 0.1);
+    bass.frequency.setValueAtTime(62, audioContext.currentTime);
+    bass.frequency.exponentialRampToValueAtTime(48, audioContext.currentTime + 0.14);
     gain.gain.exponentialRampToValueAtTime(0.18, audioContext.currentTime + 0.01);
     gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.28);
+    playNoiseBurst(audioContext, {
+      filterType: "bandpass",
+      frequency: 880,
+      duration: 0.1,
+      gainValue: 0.08,
+    });
   } else {
     lead.type = "square";
     lead.frequency.setValueAtTime(236, audioContext.currentTime);
@@ -313,14 +558,33 @@ function playCourtroomCue(kind: CourtroomCue) {
     accent.type = "triangle";
     accent.frequency.setValueAtTime(640, audioContext.currentTime + 0.05);
     accent.frequency.exponentialRampToValueAtTime(820, audioContext.currentTime + 0.28);
+    bass.frequency.setValueAtTime(120, audioContext.currentTime);
+    bass.frequency.exponentialRampToValueAtTime(136, audioContext.currentTime + 0.22);
+    playNoiseBurst(audioContext, {
+      filterType: "bandpass",
+      frequency: 1100,
+      duration: 0.14,
+      gainValue: 0.045,
+    });
   }
 
   lead.connect(gain);
   accent.connect(gain);
   lead.start(audioContext.currentTime);
-  lead.stop(audioContext.currentTime + (kind === "gavel" ? 0.14 : 0.36));
+  lead.stop(
+    audioContext.currentTime +
+      (kind === "gavel" ? 0.14 : kind === "victory" ? 0.62 : kind === "defeat" ? 0.44 : 0.36),
+  );
   accent.start(audioContext.currentTime + 0.02);
-  accent.stop(audioContext.currentTime + (kind === "gavel" ? 0.12 : 0.34));
+  accent.stop(
+    audioContext.currentTime +
+      (kind === "gavel" ? 0.12 : kind === "victory" ? 0.58 : kind === "defeat" ? 0.42 : 0.34),
+  );
+  bass.start(audioContext.currentTime);
+  bass.stop(
+    audioContext.currentTime +
+      (kind === "gavel" ? 0.16 : kind === "victory" ? 0.56 : kind === "defeat" ? 0.4 : 0.32),
+  );
 }
 
 function playDialogueBlip(role: CourtRole) {
@@ -1107,7 +1371,13 @@ function buildCombinedVerdict(args: {
 }
 
 function getRoleLabel(role: CourtRole) {
-  if (role === "Defense") return "Trader Defense";
+  if (role === "Defense") return "Planck";
+  if (role === "Judge") return "PIRB";
+  return "Chop The Shark";
+}
+
+function getRoleTag(role: CourtRole) {
+  if (role === "Defense") return "Defense";
   if (role === "Judge") return "Judge";
   return "Prosecutor";
 }
@@ -1119,7 +1389,7 @@ function getVerdictSpeech(verdict: VerdictBoard) {
 const openingSpeech =
   "Order. The court will hear this trade as filed. Defense and prosecution will examine the tape one statement at a time before the ruling is delivered.";
 
-async function fetchHistoricalRecord(asset: string, timestamp: string) {
+async function fetchHistoricalRecord(selection: MarketSelection, timestamp: string) {
   const parsedTimestamp = new Date(timestamp).getTime();
 
   if (!Number.isFinite(parsedTimestamp) || parsedTimestamp <= 0) {
@@ -1127,9 +1397,9 @@ async function fetchHistoricalRecord(asset: string, timestamp: string) {
   }
 
   const search = new URLSearchParams({
-    asset,
     timestamp: String(parsedTimestamp),
   });
+  appendMarketSelection(search, selection);
   const response = await fetch(`/api/market-record?${search.toString()}`, {
     cache: "no-store",
   });
@@ -1139,6 +1409,25 @@ async function fetchHistoricalRecord(asset: string, timestamp: string) {
   }
 
   return (await response.json()) as MarketRecordPayload;
+}
+
+async function fetchPythSymbols(query: string) {
+  const search = new URLSearchParams();
+
+  if (query.trim().length >= 2) {
+    search.set("query", query.trim());
+  }
+
+  const response = await fetch(`/api/pyth-symbols?${search.toString()}`, {
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to search Pyth symbols (${response.status})`);
+  }
+
+  const payload = (await response.json()) as PythSymbolSearchPayload;
+  return payload.symbols;
 }
 
 function getRecordSourceLabel(record: MarketRecordPayload) {
@@ -1163,8 +1452,9 @@ function CourtPortrait({
     >
       <div className="courtPortraitInner">
         <img
+          key={`${role}-${expression}`}
           className="courtPortraitImage"
-          src={rolePortraits[role]}
+          src={getPortraitSrc(role, expression)}
           alt=""
           loading="eager"
           decoding="sync"
@@ -1176,7 +1466,18 @@ function CourtPortrait({
 }
 
 export function TradeTrialExperience() {
-  const [asset, setAsset] = useState<SupportedAsset>("BTC / USD");
+  const [selectedMarket, setSelectedMarket] = useState<MarketSelection>(
+    DEFAULT_MARKET_SELECTION,
+  );
+  const [assetSearchQuery, setAssetSearchQuery] = useState(
+    DEFAULT_MARKET_SELECTION.asset,
+  );
+  const [symbolResults, setSymbolResults] = useState<PythSymbolOption[]>(
+    FEATURED_PYTH_SYMBOLS,
+  );
+  const [isSearchingSymbols, setIsSearchingSymbols] = useState(false);
+  const [symbolSearchError, setSymbolSearchError] = useState<string | null>(null);
+  const [showSymbolResults, setShowSymbolResults] = useState(false);
   const [intent, setIntent] = useState<(typeof caseSides)[number]>("Long");
   const [enteredAt, setEnteredAt] = useState(() =>
     toDateTimeLocalValue(new Date()),
@@ -1198,8 +1499,8 @@ export function TradeTrialExperience() {
   const [showImpactStamp, setShowImpactStamp] = useState(false);
   const [typedCharacters, setTypedCharacters] = useState(0);
   const [selectedProofIndex, setSelectedProofIndex] = useState(0);
-  const [showDossier, setShowDossier] = useState(false);
   const lastDialogueBlipRef = useRef(0);
+  const asset = selectedMarket.asset;
   const {
     input,
     state,
@@ -1208,17 +1509,54 @@ export function TradeTrialExperience() {
     notice,
     baselineSamples,
     baselineTarget,
+    channel: liveChannel,
   } = useMarketStream({
-    asset,
+    selection: selectedMarket,
     provider: apiMarketProvider,
   });
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const run = async () => {
+      setIsSearchingSymbols(true);
+      setSymbolSearchError(null);
+
+      try {
+        const symbols = await fetchPythSymbols(assetSearchQuery);
+        if (!cancelled) {
+          setSymbolResults(symbols.length > 0 ? symbols : FEATURED_PYTH_SYMBOLS);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setSymbolResults(FEATURED_PYTH_SYMBOLS);
+          setSymbolSearchError(
+            error instanceof Error ? error.message : "Unable to search Pyth symbols.",
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setIsSearchingSymbols(false);
+        }
+      }
+    };
+
+    const timeout = window.setTimeout(() => {
+      void run();
+    }, 180);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeout);
+    };
+  }, [assetSearchQuery]);
 
   useEffect(() => {
     setEntryPriceTouched(false);
     setEntryPriceText("");
     setClosePriceTouched(false);
     setClosePriceText("");
-  }, [asset, intent]);
+  }, [asset, intent, selectedMarket.symbol]);
 
   useEffect(() => {
     if (!input || entryPriceTouched) {
@@ -1238,6 +1576,7 @@ export function TradeTrialExperience() {
 
   const activeBeat = trialRun?.beats[activeBeatIndex] ?? null;
   const activeVerdict = trialRun?.verdict ?? null;
+  const verdictOutcomeClass = activeVerdict?.outcome.toLowerCase() ?? "";
   const activeSpeaker =
     phase === "opening" || phase === "renderVerdict" || phase === "verdict"
       ? "Judge"
@@ -1334,7 +1673,7 @@ export function TradeTrialExperience() {
 
     const stampTimeout = window.setTimeout(() => {
       setShowImpactStamp(false);
-    }, 420);
+    }, 520);
 
     return () => {
       window.clearInterval(typingInterval);
@@ -1348,6 +1687,15 @@ export function TradeTrialExperience() {
     }
 
     playCourtroomCue("gavel");
+    setShowImpactStamp(true);
+
+    const stampTimeout = window.setTimeout(() => {
+      setShowImpactStamp(false);
+    }, 360);
+
+    return () => {
+      window.clearTimeout(stampTimeout);
+    };
   }, [phase]);
 
   useEffect(() => {
@@ -1516,6 +1864,9 @@ export function TradeTrialExperience() {
       : status === "warming"
         ? "Pyth Pro Warm-up"
         : "Mock Fallback";
+  const selectedChannelLabel = formatChannelLabel(selectedMarket.minChannel);
+  const visibleSymbolResults =
+    showSymbolResults || assetSearchQuery.trim().toLowerCase() !== asset.toLowerCase();
   const canStartTrial =
     Boolean(enteredAt) && (stillOpen || Boolean(closedAt)) && effectiveEntryPrice > 0;
   const filingSummary = [
@@ -1571,8 +1922,8 @@ export function TradeTrialExperience() {
           : "stoic"
       : phase === "verdict"
         ? activeVerdict?.winner === "Defense"
-          ? "emphasis"
-          : "stoic"
+          ? "celebrate"
+          : "defeated"
         : "idle";
   const prosecutorExpression: PortraitExpression =
     phase === "trial"
@@ -1587,8 +1938,8 @@ export function TradeTrialExperience() {
           : "stoic"
       : phase === "verdict"
         ? activeVerdict?.winner === "Prosecutor"
-          ? "emphasis"
-          : "stoic"
+          ? "celebrate"
+          : "defeated"
         : "idle";
   const judgeExpression: PortraitExpression =
     phase === "opening"
@@ -1598,17 +1949,34 @@ export function TradeTrialExperience() {
       : phase === "renderVerdict"
         ? "gavel"
         : phase === "verdict"
-          ? isTyping
+        ? isTyping
             ? "speaking"
             : "emphasis"
           : "stoic";
+  const impactStampText =
+    phase === "trial" && activeBeat
+      ? activeBeat.cue
+      : phase === "renderVerdict"
+        ? "Order!"
+        : phase === "verdict" && activeVerdict
+          ? activeVerdict.stamp
+          : "";
+  const impactStampToneClass =
+    phase === "trial" && activeBeat
+      ? `tone${activeBeat.tone}`
+      : phase === "renderVerdict"
+        ? "tonewarning"
+        : phase === "verdict" && activeVerdict
+          ? `tone${activeVerdict.outcome.toLowerCase()}`
+          : "";
+  const headlineReasons = activeVerdict?.reasons.slice(0, 2) ?? [];
 
   async function startTrial() {
     setIsPreparingTrial(true);
     setPreparationError(null);
 
     try {
-      const entryRecord = await fetchHistoricalRecord(asset, enteredAt);
+      const entryRecord = await fetchHistoricalRecord(selectedMarket, enteredAt);
       const entryLeg: TrialLeg = {
         asset: entryRecord.input.asset,
         enteredAtLabel,
@@ -1623,6 +1991,7 @@ export function TradeTrialExperience() {
           baselineSamples: entryRecord.baselineSamples,
           baselineTarget: entryRecord.baselineTarget,
           notice: entryRecord.notice,
+          channel: entryRecord.channel,
         }),
         tradeAssessment: assessTradeTicket({
           input: entryRecord.input,
@@ -1643,7 +2012,7 @@ export function TradeTrialExperience() {
       let followUpMode: "close" | "current" | undefined;
 
       if (!stillOpen && closedAt) {
-        const closeRecord = await fetchHistoricalRecord(asset, closedAt);
+        const closeRecord = await fetchHistoricalRecord(selectedMarket, closedAt);
         followUpLeg = {
           asset: closeRecord.input.asset,
           enteredAtLabel: closedAtLabel,
@@ -1658,6 +2027,7 @@ export function TradeTrialExperience() {
             baselineSamples: closeRecord.baselineSamples,
             baselineTarget: closeRecord.baselineTarget,
             notice: closeRecord.notice,
+            channel: closeRecord.channel,
           }),
           tradeAssessment: assessTradeTicket({
             input: closeRecord.input,
@@ -1689,6 +2059,7 @@ export function TradeTrialExperience() {
             baselineSamples,
             baselineTarget,
             notice,
+            channel: source === "pyth-pro" ? liveChannel ?? selectedMarket.minChannel : undefined,
           }),
           tradeAssessment: assessTradeTicket({
             input: activeInput,
@@ -1740,7 +2111,6 @@ export function TradeTrialExperience() {
       setSelectedProofIndex(0);
       setTypedCharacters(0);
       setShowImpactStamp(false);
-      setShowDossier(false);
       setShowAdvancedFiling(false);
       setPhase("opening");
     } catch (error) {
@@ -1759,7 +2129,6 @@ export function TradeTrialExperience() {
     setSelectedProofIndex(0);
     setShowImpactStamp(false);
     setTypedCharacters(0);
-    setShowDossier(false);
     setShowAdvancedFiling(false);
     setPreparationError(null);
   }
@@ -1787,18 +2156,65 @@ export function TradeTrialExperience() {
 
           <section className="caseTerminal" aria-label="Trade intake terminal">
             <label className="field">
-              <span>Select Asset</span>
-              <select
-                value={asset}
-                onChange={(event) => setAsset(event.target.value as SupportedAsset)}
-                className="ticketInput trialSelect"
-              >
-                {supportedAssets.map((candidate) => (
-                  <option key={candidate} value={candidate}>
-                    {candidate}
-                  </option>
-                ))}
-              </select>
+              <span>Select Token</span>
+              <input
+                type="text"
+                value={assetSearchQuery}
+                onChange={(event) => {
+                  setAssetSearchQuery(event.target.value);
+                  setShowSymbolResults(true);
+                }}
+                onFocus={() => setShowSymbolResults(true)}
+                onBlur={() => {
+                  window.setTimeout(() => {
+                    setShowSymbolResults(false);
+                    setAssetSearchQuery(asset);
+                  }, 120);
+                }}
+                className="ticketInput"
+                placeholder="Search ticker or symbol"
+                autoComplete="off"
+                spellCheck={false}
+              />
+              <div className="fieldHint">
+                Selected feed: {selectedMarket.symbol} · {selectedChannelLabel}
+              </div>
+              {visibleSymbolResults ? (
+                <div className="symbolSearchResults" role="listbox" aria-label="Pyth symbol search">
+                  {isSearchingSymbols ? (
+                    <div className="symbolSearchStatus">Searching Pyth feeds...</div>
+                  ) : symbolResults.length > 0 ? (
+                    symbolResults.map((candidate) => {
+                      const isActive = candidate.symbol === selectedMarket.symbol;
+
+                      return (
+                        <button
+                          key={candidate.symbol}
+                          type="button"
+                          className={`symbolResultButton${isActive ? " active" : ""}`}
+                          onMouseDown={(event) => {
+                            event.preventDefault();
+                            setSelectedMarket(toMarketSelection(candidate));
+                            setAssetSearchQuery(candidate.asset);
+                            setShowSymbolResults(false);
+                            setPreparationError(null);
+                          }}
+                        >
+                          <span className="symbolResultAsset">{candidate.asset}</span>
+                          <span className="symbolResultMeta">
+                            {candidate.symbol} · {formatChannelLabel(candidate.minChannel)}
+                          </span>
+                        </button>
+                      );
+                    })
+                  ) : (
+                    <div className="symbolSearchStatus">No Pyth feeds matched that ticker.</div>
+                  )}
+                  {symbolSearchError ? (
+                    <div className="symbolSearchStatus subtle">{symbolSearchError}</div>
+                  ) : null}
+                </div>
+              ) : null}
             </label>
 
             <div className="field">
@@ -1984,7 +2400,7 @@ export function TradeTrialExperience() {
               <p className="intakeFootnote">
                 {preparationError
                   ? preparationError
-                  : "Each case leg is reconstructed from Pyth Pro evidence before the hearing begins."}
+                  : `Each case leg is reconstructed from ${selectedMarket.symbol} on ${selectedChannelLabel} Pyth Pro evidence before the hearing begins.`}
               </p>
               <button
                 type="button"
@@ -2029,7 +2445,9 @@ export function TradeTrialExperience() {
                   src="/brand/pyth-logo-light.svg"
                   alt="Pyth"
                 />
-                <span className="trialJudgeTag">Court Is Now In Session</span>
+                <span className="trialJudgeTag">
+                  {getRoleLabel("Judge")} / {getRoleTag("Judge")}
+                </span>
               </div>
               <CourtPortrait
                 role="Judge"
@@ -2040,9 +2458,9 @@ export function TradeTrialExperience() {
               <div className="dialogueConsole tonewarning fullWidth rulingConsole">
                 <div className="dialogueConsoleTop">
                   <span className="panelEyebrow">Opening Order</span>
-                  <span className="caseMetaTag subtle">Judge</span>
+                  <span className="caseMetaTag subtle">{getRoleLabel("Judge")}</span>
                 </div>
-                <strong className="dialogueSpeakerName">Judge</strong>
+                <strong className="dialogueSpeakerName">{getRoleLabel("Judge")}</strong>
                 <p className="dialogueText">
                   {typedDialogue}
                   <span
@@ -2081,9 +2499,11 @@ export function TradeTrialExperience() {
         <div className="trialSceneGlow trialSceneGlowLeft" />
         <div className="trialSceneGlow trialSceneGlowRight" />
 
-        <div className={`impactStamp${showImpactStamp ? " visible" : ""}`}>
-          {activeBeat.cue.toUpperCase()}
+        <div className={`impactStamp ${impactStampToneClass}${showImpactStamp ? " visible" : ""}`}>
+          {impactStampText.toUpperCase()}
         </div>
+        <div className={`impactBloom ${impactStampToneClass}${showImpactStamp ? " visible" : ""}`} />
+        <div className={`impactFlash ${impactStampToneClass}${showImpactStamp ? " visible" : ""}`} />
 
         <div className="courtroomScene courtroomSceneExpanded">
           <header className="courtroomHeader trialHeaderExpanded compact">
@@ -2098,7 +2518,9 @@ export function TradeTrialExperience() {
 
             <div className={`trialCastLayout hearingDuel ${stageFocusClass}`}>
               <article className={`trialCounselPanel roleDefense state${defenseStateClass}`}>
-                <span className="trialCounselSide">Defense</span>
+                <span className="trialCounselSide">
+                  {getRoleLabel("Defense")} / {getRoleTag("Defense")}
+                </span>
                 <CourtPortrait
                   role="Defense"
                   state={defenseStateClass}
@@ -2108,7 +2530,9 @@ export function TradeTrialExperience() {
               </article>
 
               <article className={`trialCounselPanel roleProsecutor state${prosecutorStateClass}`}>
-                <span className="trialCounselSide">Prosecutor</span>
+                <span className="trialCounselSide">
+                  {getRoleLabel("Prosecutor")} / {getRoleTag("Prosecutor")}
+                </span>
                 <CourtPortrait
                   role="Prosecutor"
                   state={prosecutorStateClass}
@@ -2162,6 +2586,16 @@ export function TradeTrialExperience() {
                 <div className="trialLedgerCell">
                   <span>Window</span>
                   <strong>{formatEvidenceWindow(activeBeat.record)}</strong>
+                </div>
+                <div className="trialLedgerCell">
+                  <span>Channel</span>
+                  <strong>
+                    {activeBeat.record.channel
+                      ? formatChannelLabel(
+                          activeBeat.record.channel as MarketSelection["minChannel"],
+                        )
+                      : "n/a"}
+                  </strong>
                 </div>
                 <div className="trialLedgerCell">
                   <span>Case Leg</span>
@@ -2261,7 +2695,14 @@ export function TradeTrialExperience() {
             <p className="trialSceneMeta">{compactFilingLine}</p>
           </header>
 
-          <section className="trialCourtStage verdictAlarmStage focusJudge">
+          <section
+            className={`trialCourtStage verdictAlarmStage focusJudge${showImpactStamp ? " shockAttack" : ""}`}
+          >
+            <div className={`impactStamp ${impactStampToneClass}${showImpactStamp ? " visible" : ""}`}>
+              {impactStampText.toUpperCase()}
+            </div>
+            <div className={`impactBloom ${impactStampToneClass}${showImpactStamp ? " visible" : ""}`} />
+            <div className={`impactFlash ${impactStampToneClass}${showImpactStamp ? " visible" : ""}`} />
             <div className="trialCastLayout focusJudge">
               <article className="trialCounselPanel roleDefense stateidle">
                 <CourtPortrait role="Defense" state="idle" expression="stoic" />
@@ -2308,9 +2749,11 @@ export function TradeTrialExperience() {
       <div className="trialSceneGlow trialSceneGlowLeft" />
       <div className="trialSceneGlow trialSceneGlowRight" />
 
-      <div className={`impactStamp${showImpactStamp ? " visible" : ""}`}>
-        {activeVerdict.stamp}
+      <div className={`impactStamp ${impactStampToneClass}${showImpactStamp ? " visible" : ""}`}>
+        {impactStampText.toUpperCase()}
       </div>
+      <div className={`impactBloom ${impactStampToneClass}${showImpactStamp ? " visible" : ""}`} />
+      <div className={`impactFlash ${impactStampToneClass}${showImpactStamp ? " visible" : ""}`} />
 
       <div className="verdictScene verdictSceneExpanded">
         <header className="verdictHero">
@@ -2325,10 +2768,12 @@ export function TradeTrialExperience() {
           <p className="trialSceneMeta">{compactFilingLine}</p>
         </header>
 
-        <section className="trialCourtStage verdictCourtStage">
+        <section className={`trialCourtStage verdictCourtStage outcome${verdictOutcomeClass}`}>
           <div className="trialCastLayout">
             <article className={`trialCounselPanel roleDefense state${defenseStateClass}`}>
-              <span className="trialCounselSide">Defense</span>
+              <span className="trialCounselSide">
+                {getRoleLabel("Defense")} / {getRoleTag("Defense")}
+              </span>
               <CourtPortrait
                 role="Defense"
                 state={defenseStateClass}
@@ -2344,7 +2789,9 @@ export function TradeTrialExperience() {
                   src="/brand/pyth-logo-light.svg"
                   alt="Pyth"
                 />
-                <span className="trialJudgeTag">Official Ruling</span>
+                <span className="trialJudgeTag">
+                  {getRoleLabel("Judge")} / {getRoleTag("Judge")}
+                </span>
               </div>
               <CourtPortrait
                 role="Judge"
@@ -2357,7 +2804,7 @@ export function TradeTrialExperience() {
                   <span className="panelEyebrow">Judge's Ruling</span>
                   <span className="caseMetaTag subtle">{activeVerdict.stamp}</span>
                 </div>
-                <strong className="dialogueSpeakerName">Judge</strong>
+                <strong className="dialogueSpeakerName">{getRoleLabel("Judge")}</strong>
                 <p className="dialogueText">
                   {typedDialogue}
                   <span
@@ -2371,7 +2818,9 @@ export function TradeTrialExperience() {
             </article>
 
             <article className={`trialCounselPanel roleProsecutor state${prosecutorStateClass}`}>
-              <span className="trialCounselSide">Prosecutor</span>
+              <span className="trialCounselSide">
+                {getRoleLabel("Prosecutor")} / {getRoleTag("Prosecutor")}
+              </span>
               <CourtPortrait
                 role="Prosecutor"
                 state={prosecutorStateClass}
@@ -2385,15 +2834,17 @@ export function TradeTrialExperience() {
         <section className="verdictPanelFull">
           <p className="verdictHeroSummary">{activeVerdict.summary}</p>
 
-          <div className="verdictReasonStack">
-            {activeVerdict.reasons.map((reason) => (
-              <article key={reason} className="verdictReasonPanel">
-                {reason}
-              </article>
-            ))}
-          </div>
-
           <article className="verdictGuidancePanel">
+            <span className="panelEyebrow">Why The Court Ruled This Way</span>
+            {headlineReasons.length > 0 ? (
+              <div className="verdictFindingList">
+                {headlineReasons.map((reason) => (
+                  <p key={reason} className="verdictFindingItem">
+                    {reason}
+                  </p>
+                ))}
+              </div>
+            ) : null}
             <span className="panelEyebrow">Judge's Note</span>
             <p>{activeVerdict.guidance}</p>
           </article>
@@ -2406,44 +2857,8 @@ export function TradeTrialExperience() {
             >
               File Another Trade
             </button>
-            <button
-              type="button"
-              className="modeActionButton subtle"
-              onClick={() => setShowDossier((current) => !current)}
-            >
-              {showDossier ? "Hide Full Review" : "Read Full Review"}
-            </button>
           </div>
         </section>
-
-        {showDossier ? (
-          <section className="trialDossierSection">
-            <div className="trialProofBoardTop">
-              <div>
-                <span className="panelEyebrow">Detailed Review</span>
-                <p className="trialProofLead">
-                  Full evidence archive from the hearing and the final ruling.
-                </p>
-              </div>
-              <span className="caseMetaTag subtle">{trialRun.enteredAtLabel}</span>
-            </div>
-
-            <div className="trialDossierGrid">
-              {trialRun.dossier.map((proof) => (
-                <article
-                  key={proof.id}
-                  className={`trialProofCard trialProofCardStatic trend${proof.trend}`}
-                >
-                  <span className="trialProofLabel">{proof.label}</span>
-                  <strong className="trialProofValue">{proof.value}</strong>
-                  <span className="trialProofDelta">{proof.delta}</span>
-                  <span className="trialProofSource">{proof.source}</span>
-                  <p className="trialProofNote">{proof.note}</p>
-                </article>
-              ))}
-            </div>
-          </section>
-        ) : null}
       </div>
     </section>
   );

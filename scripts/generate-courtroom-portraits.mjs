@@ -7,26 +7,118 @@ const ROOT = process.cwd();
 const OUTPUT_DIR = path.join(ROOT, "public", "courtroom");
 const MANIFEST_PATH = path.join(OUTPUT_DIR, "portrait-manifest.json");
 
-const CHARACTER_SPECS = [
+const BASE_CHARACTER_SPECS = [
   {
     id: "defense",
-    label: "Trader Defense",
-    prompt:
-      "Original courtroom defense portrait for a trading trial app in Pyth NFT cartoon style. Planck the dinosaur defense counsel, bust portrait with upper torso visible, centered, facing slightly right, skull-like dinosaur head with large expressive eyes, purple glossy Pyth helmet with the Pyth mark, gray-white marble body with pink graffiti-style Pyth markings, classical robe silhouette, holding a glowing purple orb in one hand, calm but clever courtroom energy, strong black outlines, simple shapes, dark violet background, original character, no text, no watermark, no copyrighted characters.",
+    label: "Planck",
+    basePrompt:
+      "Original courtroom defense portrait for a trading trial app in Pyth NFT cartoon style. Planck the dinosaur defense counsel, female character, bust portrait with upper torso visible, centered, facing slightly right, elegant skull-like dinosaur head with large expressive eyes, subtle feminine styling, purple glossy Pyth helmet with the Pyth mark, gray-white marble body with pink graffiti-style Pyth markings, classical robe silhouette, holding a glowing purple orb in one hand.",
+    variants: [
+      {
+        suffix: "",
+        label: "Idle",
+        detail:
+          "Calm but clever courtroom energy, composed female defense counsel expression, ready for cross examination.",
+      },
+      {
+        suffix: "-emphasis",
+        label: "Emphasis",
+        detail:
+          "Sharp rebuttal pose, narrowed eyes, confident grin, orb lifted forward, aggressive defense energy.",
+      },
+      {
+        suffix: "-shocked",
+        label: "Shocked",
+        detail:
+          "Startled courtroom reaction, eyes wide, mouth open, orb pulled close, surprised defensive posture.",
+      },
+      {
+        suffix: "-celebrate",
+        label: "Celebrate",
+        detail:
+          "Victorious celebration, bright triumphant grin, orb raised up, head lifted, winning female defense energy.",
+      },
+      {
+        suffix: "-defeated",
+        label: "Defeated",
+        detail:
+          "Loss reaction, head slightly lowered, disappointed eyes, tired mouth, orb lowered, crestfallen posture.",
+      },
+    ],
   },
   {
     id: "judge",
-    label: "Judge",
-    prompt:
-      "Original courtroom judge portrait for a trading trial app in Pyth NFT cartoon style. PIRB the pigeon judge, bust portrait with upper torso visible, centered, facing slightly left, stern bright orange eye, gray pigeon feathers, purple glossy Pyth helmet with the Pyth mark, chest-mounted vintage camera with visible strap, ceremonial authority, readable silhouette, playful but serious courtroom energy, strong black outlines, simple shapes, dark violet background, original mascot character, no text, no watermark, no copyrighted characters.",
+    label: "PIRB",
+    basePrompt:
+      "Original courtroom judge portrait for a trading trial app in Pyth NFT cartoon style. PIRB the pigeon judge, bust portrait with upper torso visible, centered, facing slightly left, stern bright orange eye, gray pigeon feathers, purple glossy Pyth helmet with the Pyth mark, chest-mounted vintage camera with visible strap, judicial robe silhouette, small courtroom gavel visible in wing or foreground, ceremonial authority, readable silhouette.",
+    variants: [
+      {
+        suffix: "",
+        label: "Idle",
+        detail:
+          "Playful but serious courtroom authority, neutral beak, composed judge posture, clearly readable as a judge.",
+      },
+      {
+        suffix: "-speaking",
+        label: "Speaking",
+        detail:
+          "Delivering the ruling, beak slightly open, attentive judge expression, active speaking posture, gavel or judicial gesture still visible.",
+      },
+      {
+        suffix: "-gavel",
+        label: "Gavel",
+        detail:
+          "Judge delivering order with strong authority, intense eye, forceful courtroom command energy, dramatic ruling pose, gavel raised clearly and visibly.",
+      },
+    ],
   },
   {
     id: "prosecutor",
-    label: "Prosecutor",
-    prompt:
-      "Original courtroom prosecutor portrait for a trading trial app in Pyth NFT cartoon style. Chop The Shark, bust portrait with upper torso visible, centered, facing slightly left, shark head with huge jagged grin, glowing purple laser eyes, purple glossy Pyth helmet with the Pyth mark, white marble-like body with graffiti-style markings, gold Pyth medallion, draped classical robe or toga, aggressive and theatrical courtroom energy, strong black outlines, simple shapes, dark violet background, original character, no text, no watermark, no copyrighted characters.",
+    label: "Chop The Shark",
+    basePrompt:
+      "Original courtroom prosecutor portrait for a trading trial app in Pyth NFT cartoon style. Chop The Shark, bust portrait with upper torso visible, centered, facing slightly left, shark head with huge jagged grin, glowing purple laser eyes, purple glossy Pyth helmet with the Pyth mark, white marble-like body with graffiti-style markings, gold Pyth medallion, draped classical robe or toga.",
+    variants: [
+      {
+        suffix: "",
+        label: "Idle",
+        detail:
+          "Aggressive and theatrical courtroom energy, composed smug prosecutor stance.",
+      },
+      {
+        suffix: "-emphasis",
+        label: "Emphasis",
+        detail:
+          "Ferocious objection pose, eyes blazing, grin widened, body leaning forward with prosecutorial intensity.",
+      },
+      {
+        suffix: "-shocked",
+        label: "Shocked",
+        detail:
+          "Caught off guard, eyes widened, jaw open, stunned courtroom reaction while still recognizable as the shark prosecutor.",
+      },
+      {
+        suffix: "-celebrate",
+        label: "Celebrate",
+        detail:
+          "Triumphant prosecutor victory, savage grin, proud posture, glowing eyes with winning courtroom energy.",
+      },
+      {
+        suffix: "-defeated",
+        label: "Defeated",
+        detail:
+          "Frustrated loss reaction, grin collapsed, shoulders lowered, disappointed courtroom posture.",
+      },
+    ],
   },
 ];
+
+const CHARACTER_SPECS = BASE_CHARACTER_SPECS.flatMap((character) =>
+  character.variants.map((variant) => ({
+    id: `${character.id}${variant.suffix}`,
+    label: `${character.label} ${variant.label}`,
+    prompt: `${character.basePrompt} ${variant.detail} Strong black outlines, simple shapes, dark violet background, original character, no text, no watermark, no copyrighted characters.`,
+  })),
+);
 
 const STYLE_PREAMBLE =
   "Style target: original Pyth NFT-inspired cartoon illustration prepared for pixel-art conversion. Use hard black outlines, posterized shading, simple facial planes, large readable eyes, broad color blocks, limited palette, playful meme energy, no realistic texture, no photographic lighting, no painterly brushwork, no tiny details. Compose for a game dialogue portrait with the face and upper torso filling most of the frame.";
