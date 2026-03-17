@@ -219,7 +219,7 @@ function buildSummary(
 
   const sizeClause =
     sizeRatio > 1
-      ? "oversized relative to Guard policy"
+      ? "oversized relative to the safe-cap policy"
       : "directionally too aggressive for the current tape";
   const priceClause =
     distanceBps > 6
@@ -228,7 +228,7 @@ function buildSummary(
         ? `while ${leverage}x leverage magnifies any mistake`
         : "even before price slippage is considered";
 
-  return `The position is ${sizeClause} ${priceClause}. Pyth Guard would object to opening it in this state.`;
+  return `The position is ${sizeClause} ${priceClause}. The court would object to opening it in this state.`;
 }
 
 function buildObjections(
@@ -243,7 +243,7 @@ function buildObjections(
 
   if (sizeRatio > 1) {
     objections.push(
-      `Requested size is ${Math.round(sizeRatio * 100)}% of the safe ticket cap. Guard would rather keep this near ${formatCurrency(guardCap)}.`,
+      `Requested size is ${Math.round(sizeRatio * 100)}% of the safe ticket cap. The court would rather keep this near ${formatCurrency(guardCap)}.`,
     );
   }
 
@@ -255,7 +255,7 @@ function buildObjections(
 
   if (intent !== "Exit" && leverage > 10) {
     objections.push(
-      `${leverage}x leverage leaves little room for market structure to be wrong. Guard treats that as aggressive exposure, not routine positioning.`,
+      `${leverage}x leverage leaves little room for market structure to be wrong. The court treats that as aggressive exposure, not routine positioning.`,
     );
   }
 
@@ -279,7 +279,7 @@ function buildObjections(
 
   if (objections.length === 0) {
     objections.push(
-      "No major procedural objection. The ticket fits the live market structure and respects the Guard policy envelope.",
+      "No major procedural objection. The ticket fits the live market structure and respects the live safety envelope.",
     );
   }
 
@@ -346,9 +346,9 @@ function buildEvidence(
     {
       label: "Size Discipline",
       value: formatCurrency(orderSize),
-      delta: `${Math.round((orderSize / Math.max(guardCap, 1)) * 100)}% of Guard cap`,
+      delta: `${Math.round((orderSize / Math.max(guardCap, 1)) * 100)}% of safe cap`,
       trend: sizeTrend,
-      note: "Sizing is judged against the live Guard policy envelope, not against the trader's optimism.",
+      note: "Sizing is judged against the live safety envelope, not against the trader's optimism.",
     },
     {
       label: "Leverage",
@@ -399,7 +399,7 @@ function buildLines(
     },
     {
       role: "Guard" as const,
-      text: `Pyth Guard prints ${state.trustScore} on market trust, but only ${score} on ticket admissibility. Recommended action: ${recommendedAction}`,
+      text: `The Pyth record prints ${state.trustScore} on market trust, but only ${score} on ticket admissibility. Recommended action: ${recommendedAction}`,
     },
     {
       role: "Judge" as const,

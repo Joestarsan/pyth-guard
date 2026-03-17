@@ -1,44 +1,42 @@
-# Pyth Guard
+# The Market Witness
 
-`Pyth Guard` is a real-time execution trust copilot powered by Pyth Pro.
+`The Market Witness` is a courtroom-style trade analysis demo powered by Pyth evidence.
 
-It answers a different question than a normal trading dashboard:
+The product asks a simple question:
 
-`Is this market trustworthy enough to execute right now?`
+`Did this trade deserve to be opened or closed under the actual market conditions?`
 
-## Project Status
+## What It Does
 
-Early build stage.
+The app lets a trader file a case with:
+- asset
+- side
+- open time
+- close time or current-position status
+- optional size, leverage, entry price, and close price
 
-This public repository will contain only the product itself and public-facing project materials.
+It then stages a trial:
+- `Judge Opening`
+- `Prosecutor vs Defense` hearing
+- `Pyth proof cards` one beat at a time
+- final verdict and detailed case dossier
 
-Current milestone:
-- live `Pyth Guard` dashboard scaffolded in Next.js
-- trust engine, flags, and execution policy wired into the main UI
-- courtroom-style `Market Witness` replay mode implemented
-- live `Pyth Pro` path wired with a visible warm-up and mock fallback state
+## Pyth Integration
 
-## Why This Exists
+This project currently uses `Pyth Pro / Pyth Lazer` in three ways:
+- symbol discovery with `getSymbols()`
+- live market snapshots with `getLatestPrice()`
+- historical market reconstruction with `getPrice()`
 
-Most trading tools focus on price direction.
-
-Pyth provides richer market structure signals:
+The trial engine uses these inputs to judge entry and exit quality:
 - confidence
 - spread
 - publisher participation
-- market session context
+- market session
+- feed freshness
+- reference price context
 
-`Pyth Guard` turns those signals into a real-time trust layer for execution decisions.
-
-## Planned MVP
-
-- live `Trust Score`
-- risk flags:
-  - `Confidence Spike`
-  - `Liquidity Stress`
-  - `Publisher Drop`
-- concrete execution guidance
-- one polished courtroom replay powered by the same trust engine
+If `PYTH_PRO_TOKEN` is missing or entitlements are limited, the app falls back to a demo-safe mock path so the experience stays usable.
 
 ## Local Development
 
@@ -48,27 +46,19 @@ npm install
 npm run dev
 ```
 
-If you have a `Pyth Pro` key, set `PYTH_PRO_TOKEN` in `.env.local`.
+Set `PYTH_PRO_TOKEN` in `.env.local` to enable live and historical Pyth-backed evidence.
 
-The app is intentionally demo-safe:
-- with a working latest-price entitlement, the dashboard shows `Pyth Pro Live`
-- while the live baseline is still calibrating, it shows `Pyth Pro Warm-up`
-- if the key is missing or latest-price access is unavailable, it falls back to the local scenario stream and stays usable for demos
+Optional:
+- `OPENROUTER_API_KEY` is only needed for the portrait generation script in `scripts/generate-courtroom-portraits.mjs`
 
-## Pyth Inputs
+## Status
 
-- Price Feeds:
-  - `price`
-  - `conf`
-  - `ema_price`
-  - `publish_time`
-- Pyth Pro:
-  - `confidence`
-  - `bestBidPrice`
-  - `bestAskPrice`
-  - `publisherCount`
-  - `marketSession`
-  - `feedUpdateTimestamp`
+Current app state:
+- court-only product flow on `/`
+- historical `entry + close/current` case analysis
+- pixel courtroom presentation
+- character portraits and courtroom audio cues
+- production build and typecheck passing
 
 ## License
 

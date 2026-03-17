@@ -41,6 +41,18 @@ type TrialProofCard = {
   emphasis: string;
 };
 
+type TrialRecordLedger = {
+  sectionLabel: string;
+  source: "pyth-pro" | "mock";
+  status: "live" | "warming" | "fallback";
+  sourceLabel: string;
+  sampledAtMs: number;
+  sampledAtLabel: string;
+  baselineSamples?: number;
+  baselineTarget?: number;
+  notice?: string;
+};
+
 type TrialBeat = {
   id: string;
   speaker: CourtRole;
@@ -49,6 +61,7 @@ type TrialBeat = {
   headline: string;
   speech: string;
   proofs: TrialProofCard[];
+  record: TrialRecordLedger;
 };
 
 type VerdictBoard = {
@@ -72,6 +85,7 @@ type TrialLeg = {
   enteredAtLabel: string;
   sourceLabel: string;
   sourceNotice?: string;
+  record: TrialRecordLedger;
   tradeAssessment: ReturnType<typeof assessTradeTicket>;
   state: MarketState;
 };
@@ -130,8 +144,79 @@ function formatEnteredAt(value: string) {
   }).format(parsed);
 }
 
+function formatSampledAt(sampledAtMs: number) {
+  if (!Number.isFinite(sampledAtMs) || sampledAtMs <= 0) {
+    return "Unknown record time";
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+  }).format(sampledAtMs);
+}
+
 function sanitizeId(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+}
+
+function formatEvidenceWindow(record: TrialRecordLedger) {
+  if (record.baselineSamples && record.baselineTarget) {
+    return `${record.baselineSamples}/${record.baselineTarget} samples`;
+  }
+
+  if (record.baselineSamples) {
+    return `${record.baselineSamples} samples`;
+  }
+
+  if (record.status === "live") {
+    return "live snapshot";
+  }
+
+  if (record.status === "warming") {
+    return "warming baseline";
+  }
+
+  return "fallback record";
+}
+
+function getEvidenceLabel(record: TrialRecordLedger) {
+  if (record.source === "pyth-pro") {
+    if (record.sectionLabel === "Current Position") {
+      return record.status === "warming"
+        ? "Pyth Pro Warm-up Record"
+        : "Pyth Pro Live Record";
+    }
+
+    return "Pyth Pro Historical Record";
+  }
+
+  return "Fallback Record";
+}
+
+function buildRecordLedger(args: {
+  sectionLabel: string;
+  source: "pyth-pro" | "mock";
+  status: "live" | "warming" | "fallback";
+  sourceLabel: string;
+  sampledAtMs: number;
+  baselineSamples?: number;
+  baselineTarget?: number;
+  notice?: string;
+}) {
+  return {
+    sectionLabel: args.sectionLabel,
+    source: args.source,
+    status: args.status,
+    sourceLabel: args.sourceLabel,
+    sampledAtMs: args.sampledAtMs,
+    sampledAtLabel: formatSampledAt(args.sampledAtMs),
+    baselineSamples: args.baselineSamples,
+    baselineTarget: args.baselineTarget,
+    notice: args.notice,
+  } satisfies TrialRecordLedger;
 }
 
 let sharedCourtAudioContext: AudioContext | null = null;
@@ -408,6 +493,7 @@ function buildDossier(args: {
   enteredAtLabel: string;
   sourceLabel: string;
   sourceNotice?: string;
+  record: TrialRecordLedger;
   tradeAssessment: ReturnType<typeof assessTradeTicket>;
   state: ReturnType<typeof assessTradeTicket> extends never ? never : {
     trustScore: number;
@@ -417,7 +503,7 @@ function buildDossier(args: {
     evidence: EvidenceItem[];
   };
 }) {
-  const { asset, enteredAtLabel, sourceLabel, sourceNotice, tradeAssessment, state } =
+  const { asset, enteredAtLabel, sourceLabel, sourceNotice, record, tradeAssessment, state } =
     args;
 
   const staticCards = [
@@ -445,6 +531,20 @@ function buildDossier(args: {
             ? "neutral"
             : "damaging",
       emphasis: "This is the admissibility score for the exact requested ticket.",
+    }),
+    buildProofCard({
+      prefix: "dossier",
+      label: "Pyth Evidence Record",
+      value: getEvidenceLabel(record),
+      delta: `${record.sampledAtLabel} · ${formatEvidenceWindow(record)}`,
+      note:
+        record.notice ??
+        (record.source === "pyth-pro"
+          ? "This case leg is reconstructed directly from a Pyth Pro record for the filed timestamp."
+          : "This case leg is running on demo fallback evidence because live Pyth Pro data was unavailable."),
+      source: record.source === "pyth-pro" ? "Pyth Pro / Lazer" : "Fallback Engine",
+      trend: record.source === "pyth-pro" ? "supporting" : "neutral",
+      emphasis: `${record.sectionLabel} evidence is on file for the court.`,
     }),
     buildProofCard({
       prefix: "dossier",
@@ -506,6 +606,7 @@ function buildTrialBeats(args: {
   sourceLabel: string;
   contextLabel: string;
   sourceNotice?: string;
+  record: TrialRecordLedger;
   tradeAssessment: ReturnType<typeof assessTradeTicket>;
   state: {
     trustScore: number;
@@ -521,6 +622,7 @@ function buildTrialBeats(args: {
     sourceLabel,
     contextLabel,
     sourceNotice,
+    record,
     tradeAssessment,
     state,
   } = args;
@@ -571,7 +673,7 @@ function buildTrialBeats(args: {
   });
   const capCard = buildProofCard({
     prefix: "beat",
-    label: "Guard Cap",
+    label: "Safe Cap",
     value: formatCurrency(tradeAssessment.guardCap),
     delta: `${Math.round(tradeAssessment.sizeRatio * 100)}% requested`,
     note: "The court compares your size request to the live policy envelope, not to your own confidence.",
@@ -581,13 +683,17 @@ function buildTrialBeats(args: {
   });
   const sourceCard = buildProofCard({
     prefix: "beat",
-    label: "Evidence Source",
-    value: sourceLabel,
-    delta: enteredAtLabel,
-    note: sourceNotice ?? "The market record is updated live when Pyth Pro is available and falls back only if entitlements are missing.",
-    source: "Pyth Feed",
-    trend: sourceLabel.includes("Fallback") ? "neutral" : "supporting",
-    emphasis: "These proofs are tied to the live or warmed-up feed state.",
+    label: "Pyth Evidence Record",
+    value: getEvidenceLabel(record),
+    delta: `${record.sampledAtLabel} · ${formatEvidenceWindow(record)}`,
+    note:
+      sourceNotice ??
+      (record.source === "pyth-pro"
+        ? "The court is reading a filed Pyth Pro record for this exact leg of the trade."
+        : "The court is using fallback evidence because Pyth Pro access was unavailable for this leg."),
+    source: record.source === "pyth-pro" ? "Pyth Pro / Lazer" : "Fallback Engine",
+    trend: record.source === "pyth-pro" ? "supporting" : "neutral",
+    emphasis: `${contextLabel} ${record.sectionLabel} timestamp reconstructed for court.`,
   });
 
   if (tradeAssessment.intent === "Exit") {
@@ -619,6 +725,7 @@ function buildTrialBeats(args: {
             emphasis: "Exit pricing still matters when judging whether the trader rushed the close.",
           }),
         ],
+        record,
       },
       {
         id: "defense-answer",
@@ -647,6 +754,7 @@ function buildTrialBeats(args: {
           }),
           sourceCard,
         ],
+        record,
       },
       {
         id: "prosecutor-rebuttal",
@@ -675,6 +783,7 @@ function buildTrialBeats(args: {
           }),
           capCard,
         ],
+        record,
       },
       {
         id: "defense-close",
@@ -703,6 +812,7 @@ function buildTrialBeats(args: {
           }),
           sourceCard,
         ],
+        record,
       },
       {
         id: "judge-warning",
@@ -713,6 +823,7 @@ function buildTrialBeats(args: {
         speech:
           "The court has heard enough. Pyth evidence, ticket context, and the timing of the close are now on record. Press the next key and the court will decide whether the trader exited too early or exactly on time.",
         proofs: [trustCard, capCard, sourceCard],
+        record,
       },
     ] as const satisfies TrialBeat[];
   }
@@ -742,6 +853,7 @@ function buildTrialBeats(args: {
           emphasis: "This proof comes from Pyth market structure.",
         }),
       ],
+      record,
     },
     {
       id: "defense-answer",
@@ -770,6 +882,7 @@ function buildTrialBeats(args: {
         }),
         capCard,
       ],
+      record,
     },
     {
       id: "prosecutor-rebuttal",
@@ -800,6 +913,7 @@ function buildTrialBeats(args: {
           emphasis: "The ticket amplified the market weakness instead of respecting it.",
         }),
       ],
+      record,
     },
     {
       id: "defense-close",
@@ -828,6 +942,7 @@ function buildTrialBeats(args: {
         }),
         sourceCard,
       ],
+      record,
     },
     {
       id: "judge-warning",
@@ -842,6 +957,7 @@ function buildTrialBeats(args: {
         capCard,
         sourceCard,
       ],
+      record,
     },
   ] as const satisfies TrialBeat[];
 }
@@ -857,6 +973,7 @@ function buildCaseBeats(
     sourceLabel: leg.sourceLabel,
     contextLabel: `${sectionLabel} record.`,
     sourceNotice: leg.sourceNotice,
+    record: leg.record,
     tradeAssessment: leg.tradeAssessment,
     state: leg.state,
   })
@@ -882,6 +999,7 @@ function buildCaseDossier(
     enteredAtLabel: leg.enteredAtLabel,
     sourceLabel: leg.sourceLabel,
     sourceNotice: leg.sourceNotice,
+    record: leg.record,
     tradeAssessment: leg.tradeAssessment,
     state: leg.state,
   }).map((proof) => ({
@@ -1085,8 +1203,11 @@ export function TradeTrialExperience() {
   const {
     input,
     state,
+    source,
     status,
     notice,
+    baselineSamples,
+    baselineTarget,
   } = useMarketStream({
     asset,
     provider: apiMarketProvider,
@@ -1493,6 +1614,16 @@ export function TradeTrialExperience() {
         enteredAtLabel,
         sourceLabel: getRecordSourceLabel(entryRecord),
         sourceNotice: entryRecord.notice,
+        record: buildRecordLedger({
+          sectionLabel: "Entry",
+          source: entryRecord.source,
+          status: entryRecord.status,
+          sourceLabel: getRecordSourceLabel(entryRecord),
+          sampledAtMs: entryRecord.sampledAtMs,
+          baselineSamples: entryRecord.baselineSamples,
+          baselineTarget: entryRecord.baselineTarget,
+          notice: entryRecord.notice,
+        }),
         tradeAssessment: assessTradeTicket({
           input: entryRecord.input,
           state: entryRecord.state,
@@ -1518,6 +1649,16 @@ export function TradeTrialExperience() {
           enteredAtLabel: closedAtLabel,
           sourceLabel: getRecordSourceLabel(closeRecord),
           sourceNotice: closeRecord.notice,
+          record: buildRecordLedger({
+            sectionLabel: "Close",
+            source: closeRecord.source,
+            status: closeRecord.status,
+            sourceLabel: getRecordSourceLabel(closeRecord),
+            sampledAtMs: closeRecord.sampledAtMs,
+            baselineSamples: closeRecord.baselineSamples,
+            baselineTarget: closeRecord.baselineTarget,
+            notice: closeRecord.notice,
+          }),
           tradeAssessment: assessTradeTicket({
             input: closeRecord.input,
             state: closeRecord.state,
@@ -1539,6 +1680,16 @@ export function TradeTrialExperience() {
           enteredAtLabel: "Current Position",
           sourceLabel,
           sourceNotice: notice,
+          record: buildRecordLedger({
+            sectionLabel: "Current Position",
+            source,
+            status,
+            sourceLabel,
+            sampledAtMs: Date.now(),
+            baselineSamples,
+            baselineTarget,
+            notice,
+          }),
           tradeAssessment: assessTradeTicket({
             input: activeInput,
             state: activeState,
@@ -1626,7 +1777,7 @@ export function TradeTrialExperience() {
               src="/brand/pyth-logo-wordmark-light.svg"
               alt="Pyth"
             />
-            <span className="panelEyebrow">Powered By Pyth Oracle</span>
+            <span className="panelEyebrow">Powered By Pyth Pro Evidence</span>
             <h1>
               The Market
               <span className="intakeHeroAccent">Witness</span>
@@ -1733,7 +1884,7 @@ export function TradeTrialExperience() {
                       className="ticketInput"
                     />
                     <div className="fieldHint">
-                      Guard cap now: {formatCurrency(tradeAssessment.guardCap)}
+                      Safe cap now: {formatCurrency(tradeAssessment.guardCap)}
                     </div>
                   </label>
 
@@ -1833,7 +1984,7 @@ export function TradeTrialExperience() {
               <p className="intakeFootnote">
                 {preparationError
                   ? preparationError
-                  : "Evidence sourced from Pyth Price Feeds, Pyth Pro and Benchmarks."}
+                  : "Each case leg is reconstructed from Pyth Pro evidence before the hearing begins."}
               </p>
               <button
                 type="button"
@@ -1992,9 +2143,40 @@ export function TradeTrialExperience() {
               </div>
             </div>
 
+            <section className={`trialEvidenceLedger align${activeBeat.speaker}`}>
+              <div className="trialEvidenceLedgerTop">
+                <span className="panelEyebrow">{activeBeat.record.sectionLabel} Evidence</span>
+                <span className={`caseMetaTag subtle source${activeBeat.record.source} status${activeBeat.record.status}`}>
+                  {activeBeat.record.source === "pyth-pro" ? "Pyth Pro / Lazer" : "Mock Fallback"}
+                </span>
+              </div>
+              <div className="trialEvidenceLedgerGrid">
+                <div className="trialLedgerCell">
+                  <span>Record</span>
+                  <strong>{getEvidenceLabel(activeBeat.record)}</strong>
+                </div>
+                <div className="trialLedgerCell">
+                  <span>Sampled At</span>
+                  <strong>{activeBeat.record.sampledAtLabel}</strong>
+                </div>
+                <div className="trialLedgerCell">
+                  <span>Window</span>
+                  <strong>{formatEvidenceWindow(activeBeat.record)}</strong>
+                </div>
+                <div className="trialLedgerCell">
+                  <span>Case Leg</span>
+                  <strong>{activeBeat.record.sectionLabel}</strong>
+                </div>
+              </div>
+              <p className="trialEvidenceLedgerNote">
+                {activeBeat.record.notice ??
+                  "The court is reading a filed record directly from Pyth-backed market evidence."}
+              </p>
+            </section>
+
             <section className={`trialProofBoard align${activeBeat.speaker}`}>
               <div className="dialogueConsoleTop">
-                <span className="panelEyebrow">Pyth Evidence</span>
+                <span className="panelEyebrow">Pyth Pro Evidence</span>
                 <div className="trialProofNavigator">
                   <button
                     type="button"

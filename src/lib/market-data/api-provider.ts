@@ -27,7 +27,7 @@ export class ApiMarketProvider implements MarketDataProvider {
         }
       } catch (error) {
         if (!aborted) {
-          console.error("Pyth Guard live route error:", error);
+          console.error("Market Witness live route error:", error);
         }
       }
     };
