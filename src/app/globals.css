@@ -1739,6 +1739,41 @@ button {
   transform: translateY(2px) scale(1.1);
 }
 
+.courtPortrait.expressionspeaking .courtPortraitImage {
+  animation: portraitTalk 180ms steps(2, end) infinite;
+}
+
+.courtPortrait.expressionemphasis .courtPortraitInner {
+  border-color: rgba(255, 255, 255, 0.22);
+  box-shadow:
+    0 16px 0 rgba(10, 7, 18, 0.84),
+    0 0 0 3px rgba(255, 255, 255, 0.05),
+    inset 0 0 0 1px rgba(10, 7, 18, 0.72);
+}
+
+.courtPortrait.expressionemphasis .courtPortraitImage {
+  transform: translateY(-2px) scale(1.14) rotate(-1.4deg);
+}
+
+.courtPortrait.expressionshocked .courtPortraitImage {
+  animation: portraitShock 220ms steps(2, end) infinite;
+}
+
+.courtPortrait.expressionstoic .courtPortraitImage {
+  filter: contrast(1.08) saturate(0.88) brightness(0.98);
+}
+
+.courtPortrait.expressiongavel .courtPortraitInner {
+  box-shadow:
+    0 16px 0 rgba(10, 7, 18, 0.86),
+    0 0 0 3px rgba(245, 158, 11, 0.08),
+    inset 0 0 0 1px rgba(10, 7, 18, 0.72);
+}
+
+.courtPortrait.expressiongavel .courtPortraitImage {
+  animation: portraitGavel 320ms ease-in-out infinite;
+}
+
 .courtPortrait.stateloser {
   opacity: 0.46;
   filter: saturate(0.7) brightness(0.9);
@@ -3764,6 +3799,42 @@ button.trialProofCard {
   }
   100% {
     transform: translate(0, 0);
+  }
+}
+
+@keyframes portraitTalk {
+  0%,
+  100% {
+    transform: translateY(2px) scale(1.1);
+  }
+  50% {
+    transform: translateY(-1px) scale(1.12);
+  }
+}
+
+@keyframes portraitShock {
+  0%,
+  100% {
+    transform: translateY(2px) scale(1.07) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-2px) scale(1.11) rotate(-1.2deg);
+  }
+  75% {
+    transform: translateY(0) scale(1.09) rotate(1.2deg);
+  }
+}
+
+@keyframes portraitGavel {
+  0%,
+  100% {
+    transform: translateY(0) scale(1.1);
+  }
+  40% {
+    transform: translateY(-6px) scale(1.14);
+  }
+  70% {
+    transform: translateY(4px) scale(1.08);
   }
 }
 

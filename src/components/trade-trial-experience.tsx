@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useEffectEvent, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 
 import { PythBrand } from "@/components/pyth-brand";
 import { useMarketStream } from "@/hooks/use-market-stream";
 import {
   EvidenceItem,
   EvidenceTrend,
+  MarketInput,
+  MarketState,
   supportedAssets,
   SupportedAsset,
 } from "@/lib/mock-market-state";
@@ -25,7 +27,8 @@ const courtroomRoles = ["Defense", "Judge", "Prosecutor"] as const;
 type TrialPhase = "intake" | "opening" | "trial" | "renderVerdict" | "verdict";
 type CourtRole = (typeof courtroomRoles)[number];
 type TrialTone = "attack" | "defense" | "warning" | "verdict";
-type CourtroomCue = TrialTone | "opening" | "victory" | "defeat";
+type CourtroomCue = TrialTone | "opening" | "victory" | "defeat" | "gavel";
+type PortraitExpression = "idle" | "speaking" | "emphasis" | "shocked" | "stoic" | "gavel";
 
 type TrialProofCard = {
   id: string;
@@ -64,11 +67,43 @@ type TrialRun = {
   dossier: TrialProofCard[];
 };
 
+type TrialLeg = {
+  asset: string;
+  enteredAtLabel: string;
+  sourceLabel: string;
+  sourceNotice?: string;
+  tradeAssessment: ReturnType<typeof assessTradeTicket>;
+  state: MarketState;
+};
+
+type MarketRecordPayload = {
+  input: MarketInput;
+  state: MarketState;
+  source: "pyth-pro" | "mock";
+  status: "live" | "warming" | "fallback";
+  notice?: string;
+  baselineSamples?: number;
+  baselineTarget?: number;
+  sampledAtMs: number;
+};
+
 const rolePortraits: Record<CourtRole, string> = {
   Defense: "/courtroom/defense.png",
   Judge: "/courtroom/judge.png",
   Prosecutor: "/courtroom/prosecutor.png",
 };
+
+function outcomeWeight(outcome: VerdictBoard["outcome"]) {
+  if (outcome === "Acquitted") return 1;
+  if (outcome === "Convicted") return -1;
+  return 0;
+}
+
+function currentPositionWeight(outcome: VerdictBoard["outcome"]) {
+  if (outcome === "Convicted") return 1;
+  if (outcome === "Acquitted") return -1;
+  return 0;
+}
 
 function toDateTimeLocalValue(date: Date) {
   const year = date.getFullYear();
@@ -99,23 +134,33 @@ function sanitizeId(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 }
 
-function getIntentActionLabel(intent: TradeIntent) {
-  if (intent === "Long") return "Bought / Long";
-  if (intent === "Short") return "Sold / Short";
-  return "Closed / Exit";
-}
+let sharedCourtAudioContext: AudioContext | null = null;
 
-function playCourtroomCue(kind: CourtroomCue) {
-  if (typeof window === "undefined") return;
+function getCourtAudioContext() {
+  if (typeof window === "undefined") return null;
 
   const AudioContextCtor =
     window.AudioContext ??
     (window as Window & { webkitAudioContext?: typeof AudioContext })
       .webkitAudioContext;
 
-  if (!AudioContextCtor) return;
+  if (!AudioContextCtor) return null;
 
-  const audioContext = new AudioContextCtor();
+  if (!sharedCourtAudioContext || sharedCourtAudioContext.state === "closed") {
+    sharedCourtAudioContext = new AudioContextCtor();
+  }
+
+  if (sharedCourtAudioContext.state === "suspended") {
+    void sharedCourtAudioContext.resume();
+  }
+
+  return sharedCourtAudioContext;
+}
+
+function playCourtroomCue(kind: CourtroomCue) {
+  const audioContext = getCourtAudioContext();
+  if (!audioContext) return;
+
   const gain = audioContext.createGain();
   gain.connect(audioContext.destination);
   gain.gain.setValueAtTime(0.0001, audioContext.currentTime);
@@ -167,6 +212,15 @@ function playCourtroomCue(kind: CourtroomCue) {
     accent.type = "square";
     accent.frequency.setValueAtTime(320, audioContext.currentTime + 0.05);
     accent.frequency.exponentialRampToValueAtTime(156, audioContext.currentTime + 0.26);
+  } else if (kind === "gavel") {
+    lead.type = "square";
+    lead.frequency.setValueAtTime(118, audioContext.currentTime);
+    lead.frequency.exponentialRampToValueAtTime(84, audioContext.currentTime + 0.12);
+    accent.type = "triangle";
+    accent.frequency.setValueAtTime(860, audioContext.currentTime + 0.01);
+    accent.frequency.exponentialRampToValueAtTime(240, audioContext.currentTime + 0.1);
+    gain.gain.exponentialRampToValueAtTime(0.18, audioContext.currentTime + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.28);
   } else {
     lead.type = "square";
     lead.frequency.setValueAtTime(236, audioContext.currentTime);
@@ -179,13 +233,34 @@ function playCourtroomCue(kind: CourtroomCue) {
   lead.connect(gain);
   accent.connect(gain);
   lead.start(audioContext.currentTime);
-  lead.stop(audioContext.currentTime + 0.36);
+  lead.stop(audioContext.currentTime + (kind === "gavel" ? 0.14 : 0.36));
   accent.start(audioContext.currentTime + 0.02);
-  accent.stop(audioContext.currentTime + 0.34);
+  accent.stop(audioContext.currentTime + (kind === "gavel" ? 0.12 : 0.34));
+}
 
-  window.setTimeout(() => {
-    void audioContext.close();
-  }, 720);
+function playDialogueBlip(role: CourtRole) {
+  const audioContext = getCourtAudioContext();
+  if (!audioContext) return;
+
+  const gain = audioContext.createGain();
+  gain.connect(audioContext.destination);
+  gain.gain.setValueAtTime(0.0001, audioContext.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.03, audioContext.currentTime + 0.004);
+  gain.gain.exponentialRampToValueAtTime(0.0001, audioContext.currentTime + 0.06);
+
+  const oscillator = audioContext.createOscillator();
+  oscillator.connect(gain);
+  oscillator.type =
+    role === "Defense" ? "triangle" : role === "Prosecutor" ? "square" : "sine";
+  const baseFrequency =
+    role === "Defense" ? 520 : role === "Prosecutor" ? 420 : 340;
+  oscillator.frequency.setValueAtTime(baseFrequency, audioContext.currentTime);
+  oscillator.frequency.exponentialRampToValueAtTime(
+    baseFrequency * 0.92,
+    audioContext.currentTime + 0.045,
+  );
+  oscillator.start(audioContext.currentTime);
+  oscillator.stop(audioContext.currentTime + 0.05);
 }
 
 function buildProofCard(args: {
@@ -771,6 +846,148 @@ function buildTrialBeats(args: {
   ] as const satisfies TrialBeat[];
 }
 
+function buildCaseBeats(
+  leg: TrialLeg,
+  sectionKey: string,
+  sectionLabel: string,
+) {
+  return buildTrialBeats({
+    asset: leg.asset,
+    enteredAtLabel: leg.enteredAtLabel,
+    sourceLabel: leg.sourceLabel,
+    contextLabel: `${sectionLabel} record.`,
+    sourceNotice: leg.sourceNotice,
+    tradeAssessment: leg.tradeAssessment,
+    state: leg.state,
+  })
+    .filter((beat) => beat.speaker !== "Judge")
+    .map((beat) => ({
+      ...beat,
+      id: `${sectionKey}-${beat.id}`,
+      headline: `${sectionLabel}: ${beat.headline}`,
+      proofs: beat.proofs.map((proof) => ({
+        ...proof,
+        id: `${sectionKey}-${proof.id}`,
+      })),
+    }));
+}
+
+function buildCaseDossier(
+  leg: TrialLeg,
+  sectionKey: string,
+  sectionLabel: string,
+) {
+  return buildDossier({
+    asset: leg.asset,
+    enteredAtLabel: leg.enteredAtLabel,
+    sourceLabel: leg.sourceLabel,
+    sourceNotice: leg.sourceNotice,
+    tradeAssessment: leg.tradeAssessment,
+    state: leg.state,
+  }).map((proof) => ({
+    ...proof,
+    id: `${sectionKey}-${proof.id}`,
+    label: `${sectionLabel} ${proof.label}`,
+  }));
+}
+
+function buildCombinedVerdict(args: {
+  asset: string;
+  entry: TrialLeg;
+  followUp?: TrialLeg;
+  followUpLabel?: string;
+  followUpMode?: "close" | "current";
+}) {
+  const { asset, entry, followUp, followUpLabel, followUpMode = "close" } = args;
+  const entryVerdict = buildVerdictBoard({
+    asset,
+    intent: entry.tradeAssessment.intent,
+    enteredAtLabel: entry.enteredAtLabel,
+    tradeAssessment: entry.tradeAssessment,
+  });
+
+  if (!followUp) {
+    return entryVerdict;
+  }
+
+  const followUpVerdict = buildVerdictBoard({
+    asset,
+    intent: followUp.tradeAssessment.intent,
+    enteredAtLabel: followUp.enteredAtLabel,
+    tradeAssessment: followUp.tradeAssessment,
+  });
+  const score =
+    outcomeWeight(entryVerdict.outcome) +
+    (followUpMode === "current"
+      ? currentPositionWeight(followUpVerdict.outcome)
+      : outcomeWeight(followUpVerdict.outcome));
+  const outcome =
+    score > 0 ? "Acquitted" : score < 0 ? "Convicted" : "Contested";
+  const followUpName = followUpLabel ?? "Follow-up";
+
+  return {
+    outcome,
+    stamp:
+      followUpMode === "current"
+        ? outcome === "Acquitted"
+          ? "POSITION DEFENDED"
+          : outcome === "Convicted"
+            ? "POSITION AT RISK"
+            : "POSITION CONTESTED"
+        : outcome === "Acquitted"
+          ? "ROUND TRIP DEFENDED"
+          : outcome === "Convicted"
+            ? "ROUND TRIP CONVICTED"
+            : "MIXED RECORD",
+    summary:
+      followUpMode === "current"
+        ? outcome === "Acquitted"
+          ? `The ${asset} position still stands. ${entryVerdict.summary} Current record: ${followUp.tradeAssessment.recommendedAction}`
+          : outcome === "Convicted"
+            ? `The ${asset} position is now difficult to defend. ${entryVerdict.summary} Current record: ${followUp.tradeAssessment.recommendedAction}`
+            : `The ${asset} position is split between the opening and the current tape. ${entryVerdict.summary} Current record: ${followUp.tradeAssessment.recommendedAction}`
+        : outcome === "Acquitted"
+          ? `The ${asset} case survives review. ${entryVerdict.summary} ${followUpVerdict.summary}`
+          : outcome === "Convicted"
+            ? `The ${asset} case breaks under review. ${entryVerdict.summary} ${followUpVerdict.summary}`
+            : `The ${asset} case is split. ${entryVerdict.summary} ${followUpVerdict.summary}`,
+    reasons: [
+      `Entry: ${entryVerdict.summary}`,
+      `${followUpName}: ${
+        followUpMode === "current"
+          ? followUp.tradeAssessment.recommendedAction
+          : followUpVerdict.summary
+      }`,
+      `Entry guidance: ${entry.tradeAssessment.recommendedAction}`,
+      `${followUpName} guidance: ${followUp.tradeAssessment.recommendedAction}`,
+    ],
+    guidance:
+      followUpMode === "current"
+        ? outcome === "Acquitted"
+          ? `The opening still survives and the live tape does not yet demand a close. ${followUp.tradeAssessment.recommendedAction}`
+          : outcome === "Convicted"
+            ? `The case may have been admissible at entry, but the live tape now argues for de-risking. ${followUp.tradeAssessment.recommendedAction}`
+            : `The opening is arguable, but the live tape is no longer clean. ${followUp.tradeAssessment.recommendedAction}`
+        : outcome === "Acquitted"
+          ? `The market record can defend both legs of the case. ${followUp.tradeAssessment.recommendedAction}`
+          : outcome === "Convicted"
+            ? `At least one leg still fails the market record. ${followUp.tradeAssessment.recommendedAction}`
+            : `One leg survives and one does not. Reconstruct both timestamps before repeating this trade.`,
+    winner:
+      score > 0
+        ? "Defense"
+        : score < 0
+          ? "Prosecutor"
+          : followUpMode === "current"
+            ? followUpVerdict.outcome === "Convicted"
+              ? "Defense"
+              : "Prosecutor"
+            : followUpVerdict.outcome === "Acquitted"
+              ? "Defense"
+              : "Prosecutor",
+  } satisfies VerdictBoard;
+}
+
 function getRoleLabel(role: CourtRole) {
   if (role === "Defense") return "Trader Defense";
   if (role === "Judge") return "Judge";
@@ -784,17 +1001,48 @@ function getVerdictSpeech(verdict: VerdictBoard) {
 const openingSpeech =
   "Order. The court will hear this trade as filed. Defense and prosecution will examine the tape one statement at a time before the ruling is delivered.";
 
+async function fetchHistoricalRecord(asset: string, timestamp: string) {
+  const parsedTimestamp = new Date(timestamp).getTime();
+
+  if (!Number.isFinite(parsedTimestamp) || parsedTimestamp <= 0) {
+    throw new Error("Invalid timestamp");
+  }
+
+  const search = new URLSearchParams({
+    asset,
+    timestamp: String(parsedTimestamp),
+  });
+  const response = await fetch(`/api/market-record?${search.toString()}`, {
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to load historical record (${response.status})`);
+  }
+
+  return (await response.json()) as MarketRecordPayload;
+}
+
+function getRecordSourceLabel(record: MarketRecordPayload) {
+  return record.source === "pyth-pro" ? "Pyth Pro Record" : "Mock Fallback";
+}
+
 function CourtPortrait({
   role,
   state,
   variant = "stage",
+  expression = "idle",
 }: {
   role: CourtRole;
   state: string;
   variant?: "stage" | "judge";
+  expression?: PortraitExpression;
 }) {
   return (
-    <div className={`courtPortrait ${variant} role${role} state${state}`} aria-hidden="true">
+    <div
+      className={`courtPortrait ${variant} role${role} state${state} expression${expression}`}
+      aria-hidden="true"
+    >
       <div className="courtPortraitInner">
         <img
           className="courtPortraitImage"
@@ -821,7 +1069,11 @@ export function TradeTrialExperience() {
   const [leverage, setLeverage] = useState(5);
   const [entryPriceText, setEntryPriceText] = useState("");
   const [entryPriceTouched, setEntryPriceTouched] = useState(false);
+  const [closePriceText, setClosePriceText] = useState("");
+  const [closePriceTouched, setClosePriceTouched] = useState(false);
   const [showAdvancedFiling, setShowAdvancedFiling] = useState(false);
+  const [isPreparingTrial, setIsPreparingTrial] = useState(false);
+  const [preparationError, setPreparationError] = useState<string | null>(null);
   const [phase, setPhase] = useState<TrialPhase>("intake");
   const [trialRun, setTrialRun] = useState<TrialRun | null>(null);
   const [activeBeatIndex, setActiveBeatIndex] = useState(0);
@@ -829,13 +1081,12 @@ export function TradeTrialExperience() {
   const [typedCharacters, setTypedCharacters] = useState(0);
   const [selectedProofIndex, setSelectedProofIndex] = useState(0);
   const [showDossier, setShowDossier] = useState(false);
+  const lastDialogueBlipRef = useRef(0);
   const {
     input,
     state,
     status,
     notice,
-    baselineSamples,
-    baselineTarget,
   } = useMarketStream({
     asset,
     provider: apiMarketProvider,
@@ -844,6 +1095,8 @@ export function TradeTrialExperience() {
   useEffect(() => {
     setEntryPriceTouched(false);
     setEntryPriceText("");
+    setClosePriceTouched(false);
+    setClosePriceText("");
   }, [asset, intent]);
 
   useEffect(() => {
@@ -853,6 +1106,14 @@ export function TradeTrialExperience() {
 
     setEntryPriceText(getDefaultEntryPrice(input, intent).toFixed(2));
   }, [input, intent, entryPriceTouched]);
+
+  useEffect(() => {
+    if (!input || closePriceTouched || stillOpen) {
+      return;
+    }
+
+    setClosePriceText(getDefaultEntryPrice(input, "Exit").toFixed(2));
+  }, [input, closePriceTouched, stillOpen]);
 
   const activeBeat = trialRun?.beats[activeBeatIndex] ?? null;
   const activeVerdict = trialRun?.verdict ?? null;
@@ -920,6 +1181,10 @@ export function TradeTrialExperience() {
   }, [phase]);
 
   useEffect(() => {
+    lastDialogueBlipRef.current = 0;
+  }, [phase, activeBeatIndex]);
+
+  useEffect(() => {
     if (phase !== "trial" || !trialRun || !activeBeat) {
       return;
     }
@@ -955,6 +1220,14 @@ export function TradeTrialExperience() {
       window.clearTimeout(stampTimeout);
     };
   }, [phase, trialRun, activeBeatIndex, activeBeat]);
+
+  useEffect(() => {
+    if (phase !== "renderVerdict") {
+      return;
+    }
+
+    playCourtroomCue("gavel");
+  }, [phase]);
 
   useEffect(() => {
     if (phase !== "verdict" || !activeVerdict) {
@@ -998,6 +1271,23 @@ export function TradeTrialExperience() {
       window.clearTimeout(stampTimeout);
     };
   }, [phase, activeVerdict]);
+
+  useEffect(() => {
+    if (!isTyping || typedCharacters === 0) {
+      return;
+    }
+
+    if (typedCharacters === lastDialogueBlipRef.current) {
+      return;
+    }
+
+    if (typedCharacters % 3 !== 0) {
+      return;
+    }
+
+    playDialogueBlip(activeSpeaker);
+    lastDialogueBlipRef.current = typedCharacters;
+  }, [activeSpeaker, isTyping, typedCharacters]);
 
   const advanceHearing = useEffectEvent(() => {
     if (phase === "opening") {
@@ -1077,11 +1367,17 @@ export function TradeTrialExperience() {
   const activeInput = input;
   const activeState = state;
   const liveReferencePrice = getDefaultEntryPrice(input, intent);
+  const liveCloseReferencePrice = getDefaultEntryPrice(input, "Exit");
   const parsedEntryPrice = Number(entryPriceText);
+  const parsedClosePrice = Number(closePriceText);
   const effectiveEntryPrice =
     Number.isFinite(parsedEntryPrice) && parsedEntryPrice > 0
       ? parsedEntryPrice
       : liveReferencePrice;
+  const effectiveClosePrice =
+    Number.isFinite(parsedClosePrice) && parsedClosePrice > 0
+      ? parsedClosePrice
+      : liveCloseReferencePrice;
   const tradeAssessment = assessTradeTicket({
     input: activeInput,
     state: activeState,
@@ -1099,12 +1395,6 @@ export function TradeTrialExperience() {
       : status === "warming"
         ? "Pyth Pro Warm-up"
         : "Mock Fallback";
-  const contextLabel =
-    status === "fallback"
-      ? "The court is reconstructing this case from the fallback evidence stack."
-      : baselineTarget
-        ? `Baseline ${status === "live" ? "ready" : `${baselineSamples ?? 0}/${baselineTarget}`}.`
-        : "Evidence baseline is initializing.";
   const canStartTrial =
     Boolean(enteredAt) && (stillOpen || Boolean(closedAt)) && effectiveEntryPrice > 0;
   const filingSummary = [
@@ -1147,43 +1437,168 @@ export function TradeTrialExperience() {
         : activeBeatIndex >= (trialRun?.beats.length ?? 1) - 1
           ? "Press any key to render the verdict."
           : "Press any key to continue the hearing.";
+  const defenseExpression: PortraitExpression =
+    phase === "trial"
+      ? activeSpeaker === "Defense"
+        ? showImpactStamp
+          ? "emphasis"
+          : isTyping
+            ? "speaking"
+            : "idle"
+        : activeSpeaker === "Prosecutor" && showImpactStamp
+          ? "shocked"
+          : "stoic"
+      : phase === "verdict"
+        ? activeVerdict?.winner === "Defense"
+          ? "emphasis"
+          : "stoic"
+        : "idle";
+  const prosecutorExpression: PortraitExpression =
+    phase === "trial"
+      ? activeSpeaker === "Prosecutor"
+        ? showImpactStamp
+          ? "emphasis"
+          : isTyping
+            ? "speaking"
+            : "idle"
+        : activeSpeaker === "Defense" && showImpactStamp
+          ? "shocked"
+          : "stoic"
+      : phase === "verdict"
+        ? activeVerdict?.winner === "Prosecutor"
+          ? "emphasis"
+          : "stoic"
+        : "idle";
+  const judgeExpression: PortraitExpression =
+    phase === "opening"
+      ? isTyping
+        ? "speaking"
+        : "stoic"
+      : phase === "renderVerdict"
+        ? "gavel"
+        : phase === "verdict"
+          ? isTyping
+            ? "speaking"
+            : "emphasis"
+          : "stoic";
 
-  function startTrial() {
-    const nextRun = {
-      enteredAtLabel,
-      beats: buildTrialBeats({
-        asset: activeState.asset,
-        enteredAtLabel,
-        sourceLabel,
-        contextLabel,
-        sourceNotice: notice,
-        tradeAssessment,
-        state: activeState,
-      }),
-      verdict: buildVerdictBoard({
-        asset: activeState.asset,
-        intent,
-        enteredAtLabel,
-        tradeAssessment,
-      }),
-      dossier: buildDossier({
-        asset: activeState.asset,
-        enteredAtLabel,
-        sourceLabel,
-        sourceNotice: notice,
-        tradeAssessment,
-        state: activeState,
-      }),
-    } satisfies TrialRun;
+  async function startTrial() {
+    setIsPreparingTrial(true);
+    setPreparationError(null);
 
-    setTrialRun(nextRun);
-    setActiveBeatIndex(0);
-    setSelectedProofIndex(0);
-    setTypedCharacters(0);
-    setShowImpactStamp(false);
-    setShowDossier(false);
-    setShowAdvancedFiling(false);
-    setPhase("opening");
+    try {
+      const entryRecord = await fetchHistoricalRecord(asset, enteredAt);
+      const entryLeg: TrialLeg = {
+        asset: entryRecord.input.asset,
+        enteredAtLabel,
+        sourceLabel: getRecordSourceLabel(entryRecord),
+        sourceNotice: entryRecord.notice,
+        tradeAssessment: assessTradeTicket({
+          input: entryRecord.input,
+          state: entryRecord.state,
+          intent,
+          orderSize,
+          leverage,
+          entryPrice:
+            Number.isFinite(parsedEntryPrice) && parsedEntryPrice > 0
+              ? parsedEntryPrice
+              : getDefaultEntryPrice(entryRecord.input, intent),
+        }),
+        state: entryRecord.state,
+      };
+
+      let followUpLeg: TrialLeg | undefined;
+      let followUpLabel: string | undefined;
+      let followUpMode: "close" | "current" | undefined;
+
+      if (!stillOpen && closedAt) {
+        const closeRecord = await fetchHistoricalRecord(asset, closedAt);
+        followUpLeg = {
+          asset: closeRecord.input.asset,
+          enteredAtLabel: closedAtLabel,
+          sourceLabel: getRecordSourceLabel(closeRecord),
+          sourceNotice: closeRecord.notice,
+          tradeAssessment: assessTradeTicket({
+            input: closeRecord.input,
+            state: closeRecord.state,
+            intent: "Exit",
+            orderSize,
+            leverage: 1,
+            entryPrice:
+              Number.isFinite(parsedClosePrice) && parsedClosePrice > 0
+                ? parsedClosePrice
+                : getDefaultEntryPrice(closeRecord.input, "Exit"),
+          }),
+          state: closeRecord.state,
+        };
+        followUpLabel = "Close";
+        followUpMode = "close";
+      } else if (stillOpen) {
+        followUpLeg = {
+          asset: activeInput.asset,
+          enteredAtLabel: "Current Position",
+          sourceLabel,
+          sourceNotice: notice,
+          tradeAssessment: assessTradeTicket({
+            input: activeInput,
+            state: activeState,
+            intent: "Exit",
+            orderSize,
+            leverage: 1,
+            entryPrice: getDefaultEntryPrice(activeInput, "Exit"),
+          }),
+          state: activeState,
+        };
+        followUpLabel = "Current Position";
+        followUpMode = "current";
+      }
+
+      const nextRun = {
+        enteredAtLabel: stillOpen ? enteredAtLabel : `${enteredAtLabel} -> ${closedAtLabel}`,
+        beats: [
+          ...buildCaseBeats(entryLeg, "entry", "Entry"),
+          ...(followUpLeg
+            ? buildCaseBeats(
+                followUpLeg,
+                followUpMode === "current" ? "current" : "close",
+                followUpLabel ?? "Close",
+              )
+            : []),
+        ],
+        verdict: buildCombinedVerdict({
+          asset: entryLeg.asset,
+          entry: entryLeg,
+          followUp: followUpLeg,
+          followUpLabel,
+          followUpMode,
+        }),
+        dossier: [
+          ...buildCaseDossier(entryLeg, "entry", "Entry"),
+          ...(followUpLeg
+            ? buildCaseDossier(
+                followUpLeg,
+                followUpMode === "current" ? "current" : "close",
+                followUpLabel ?? "Close",
+              )
+            : []),
+        ],
+      } satisfies TrialRun;
+
+      setTrialRun(nextRun);
+      setActiveBeatIndex(0);
+      setSelectedProofIndex(0);
+      setTypedCharacters(0);
+      setShowImpactStamp(false);
+      setShowDossier(false);
+      setShowAdvancedFiling(false);
+      setPhase("opening");
+    } catch (error) {
+      setPreparationError(
+        error instanceof Error ? error.message : "Unable to prepare the historical case.",
+      );
+    } finally {
+      setIsPreparingTrial(false);
+    }
   }
 
   function resetCase() {
@@ -1195,6 +1610,7 @@ export function TradeTrialExperience() {
     setTypedCharacters(0);
     setShowDossier(false);
     setShowAdvancedFiling(false);
+    setPreparationError(null);
   }
 
   if (phase === "intake") {
@@ -1350,7 +1766,7 @@ export function TradeTrialExperience() {
                 </div>
 
                 <label className="field">
-                  <span>Filed Price</span>
+                  <span>Entry Price</span>
                   <div className="fieldControlRow">
                     <input
                       type="number"
@@ -1374,24 +1790,62 @@ export function TradeTrialExperience() {
                       Use Live
                     </button>
                   </div>
-                  <div className="fieldHint">
-                    Live reference: {formatPrice(liveReferencePrice, asset)}
-                  </div>
+                    <div className="fieldHint">
+                      Live reference: {formatPrice(liveReferencePrice, asset)}
+                    </div>
                 </label>
+
+                {!stillOpen ? (
+                  <label className="field">
+                    <span>Close Price</span>
+                    <div className="fieldControlRow">
+                      <input
+                        type="number"
+                        min={0}
+                        step={0.01}
+                        value={closePriceText}
+                        onChange={(event) => {
+                          setClosePriceTouched(true);
+                          setClosePriceText(event.target.value);
+                        }}
+                        className="ticketInput"
+                      />
+                      <button
+                        type="button"
+                        className="inlineActionButton"
+                        onClick={() => {
+                          setClosePriceTouched(false);
+                          setClosePriceText(liveCloseReferencePrice.toFixed(2));
+                        }}
+                      >
+                        Use Live
+                      </button>
+                    </div>
+                    <div className="fieldHint">
+                      Exit reference: {formatPrice(effectiveClosePrice, asset)}
+                    </div>
+                  </label>
+                ) : null}
               </div>
             ) : null}
 
             <div className="caseTerminalFooter">
               <p className="intakeFootnote">
-                Evidence sourced from Pyth Price Feeds, Pyth Pro and Benchmarks.
+                {preparationError
+                  ? preparationError
+                  : "Evidence sourced from Pyth Price Feeds, Pyth Pro and Benchmarks."}
               </p>
               <button
                 type="button"
                 className="trialLaunchButton"
-                onClick={startTrial}
-                disabled={!canStartTrial}
+                onClick={() => void startTrial()}
+                disabled={!canStartTrial || isPreparingTrial}
               >
-                {canStartTrial ? "Start Trial" : "Fill Required Fields"}
+                {isPreparingTrial
+                  ? "Preparing Case..."
+                  : canStartTrial
+                    ? "Start Trial"
+                    : "Fill Required Fields"}
               </button>
             </div>
           </section>
@@ -1426,7 +1880,12 @@ export function TradeTrialExperience() {
                 />
                 <span className="trialJudgeTag">Court Is Now In Session</span>
               </div>
-              <CourtPortrait role="Judge" state="active" variant="judge" />
+              <CourtPortrait
+                role="Judge"
+                state="active"
+                variant="judge"
+                expression={judgeExpression}
+              />
               <div className="dialogueConsole tonewarning fullWidth rulingConsole">
                 <div className="dialogueConsoleTop">
                   <span className="panelEyebrow">Opening Order</span>
@@ -1489,13 +1948,21 @@ export function TradeTrialExperience() {
             <div className={`trialCastLayout hearingDuel ${stageFocusClass}`}>
               <article className={`trialCounselPanel roleDefense state${defenseStateClass}`}>
                 <span className="trialCounselSide">Defense</span>
-                <CourtPortrait role="Defense" state={defenseStateClass} />
+                <CourtPortrait
+                  role="Defense"
+                  state={defenseStateClass}
+                  expression={defenseExpression}
+                />
                 <strong className="trialCounselName">{getRoleLabel("Defense")}</strong>
               </article>
 
               <article className={`trialCounselPanel roleProsecutor state${prosecutorStateClass}`}>
                 <span className="trialCounselSide">Prosecutor</span>
-                <CourtPortrait role="Prosecutor" state={prosecutorStateClass} />
+                <CourtPortrait
+                  role="Prosecutor"
+                  state={prosecutorStateClass}
+                  expression={prosecutorExpression}
+                />
                 <strong className="trialCounselName">{getRoleLabel("Prosecutor")}</strong>
               </article>
             </div>
@@ -1615,12 +2082,17 @@ export function TradeTrialExperience() {
           <section className="trialCourtStage verdictAlarmStage focusJudge">
             <div className="trialCastLayout focusJudge">
               <article className="trialCounselPanel roleDefense stateidle">
-                <CourtPortrait role="Defense" state="idle" />
+                <CourtPortrait role="Defense" state="idle" expression="stoic" />
                 <strong className="trialCounselName">{getRoleLabel("Defense")}</strong>
               </article>
 
               <article className="trialJudgeBench stateactive">
-                <CourtPortrait role="Judge" state="active" variant="judge" />
+                <CourtPortrait
+                  role="Judge"
+                  state="active"
+                  variant="judge"
+                  expression="gavel"
+                />
                 <div className="verdictAlarmWord">Render Verdict</div>
                 <p className="verdictAlarmText">
                   The hearing is complete. The next key will trigger the ruling.
@@ -1628,7 +2100,7 @@ export function TradeTrialExperience() {
               </article>
 
               <article className="trialCounselPanel roleProsecutor stateidle">
-                <CourtPortrait role="Prosecutor" state="idle" />
+                <CourtPortrait role="Prosecutor" state="idle" expression="stoic" />
                 <strong className="trialCounselName">{getRoleLabel("Prosecutor")}</strong>
               </article>
             </div>
@@ -1675,7 +2147,11 @@ export function TradeTrialExperience() {
           <div className="trialCastLayout">
             <article className={`trialCounselPanel roleDefense state${defenseStateClass}`}>
               <span className="trialCounselSide">Defense</span>
-              <CourtPortrait role="Defense" state={defenseStateClass} />
+              <CourtPortrait
+                role="Defense"
+                state={defenseStateClass}
+                expression={defenseExpression}
+              />
               <strong className="trialCounselName">{getRoleLabel("Defense")}</strong>
             </article>
 
@@ -1688,7 +2164,12 @@ export function TradeTrialExperience() {
                 />
                 <span className="trialJudgeTag">Official Ruling</span>
               </div>
-              <CourtPortrait role="Judge" state="winner" variant="judge" />
+              <CourtPortrait
+                role="Judge"
+                state="winner"
+                variant="judge"
+                expression={judgeExpression}
+              />
               <div className={`dialogueConsole toneverdict fullWidth rulingConsole`}>
                 <div className="dialogueConsoleTop">
                   <span className="panelEyebrow">Judge's Ruling</span>
@@ -1709,7 +2190,11 @@ export function TradeTrialExperience() {
 
             <article className={`trialCounselPanel roleProsecutor state${prosecutorStateClass}`}>
               <span className="trialCounselSide">Prosecutor</span>
-              <CourtPortrait role="Prosecutor" state={prosecutorStateClass} />
+              <CourtPortrait
+                role="Prosecutor"
+                state={prosecutorStateClass}
+                expression={prosecutorExpression}
+              />
               <strong className="trialCounselName">{getRoleLabel("Prosecutor")}</strong>
             </article>
           </div>

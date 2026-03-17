@@ -1,8 +1,11 @@
 import { PythLazerClient, SymbolResponse } from "@pythnetwork/pyth-lazer-sdk";
 
-import { MarketInput, mockScenarioFrames } from "@/lib/mock-market-state";
+import { MarketInput, MarketState, mockScenarioFrames } from "@/lib/mock-market-state";
+import { computeMarketState } from "@/lib/trust-engine";
 
 const BASELINE_TARGET = 6;
+const DEFAULT_SEED_TIMELINE = [86, 84, 83, 82, 84, 86];
+const HISTORICAL_SAMPLE_INTERVAL_MS = 2 * 60 * 1000;
 
 type AssetKey = "BTC / USD" | "ETH / USD" | "SPY / USD";
 
@@ -18,6 +21,26 @@ type BaselineState = {
   confidences: number[];
   spreadRatios: number[];
   publisherCounts: number[];
+};
+
+export type MarketRecord = {
+  input: MarketInput;
+  state: MarketState;
+  source: "pyth-pro" | "mock";
+  status: "live" | "warming" | "fallback";
+  notice?: string;
+  baselineSamples?: number;
+  baselineTarget?: number;
+  sampledAtMs: number;
+};
+
+type HistoricalPoint = {
+  sampledAtMs: number;
+  price: number;
+  confidence: number;
+  bestBidPrice: number;
+  bestAskPrice: number;
+  publisherCount: number;
 };
 
 const ASSET_CONFIG: Record<AssetKey, AssetConfig> = {
@@ -80,6 +103,14 @@ function median(values: number[]) {
 
 function pushWindow(values: number[], value: number, max = 20) {
   return [...values, value].slice(-max);
+}
+
+function getSpreadRatio(bestBidPrice: number, bestAskPrice: number) {
+  if (bestBidPrice <= 0 || bestAskPrice <= 0) {
+    return 0.00016;
+  }
+
+  return (bestAskPrice - bestBidPrice) / ((bestAskPrice + bestBidPrice) / 2);
 }
 
 function formatFallbackNotice(message: string) {
@@ -188,6 +219,190 @@ function getMockFallback(assetKey: AssetKey, notice: string) {
     baselineTarget: BASELINE_TARGET,
     notice,
   };
+}
+
+function buildMarketInputFromPoint(
+  assetKey: AssetKey,
+  metadata: SymbolResponse | null,
+  point: HistoricalPoint,
+  baseline: BaselineState,
+) {
+  const spreadRatio = getSpreadRatio(point.bestBidPrice, point.bestAskPrice);
+
+  return {
+    asset: assetKey,
+    marketSession: deriveSession(assetKey, metadata),
+    price: point.price,
+    confidence: point.confidence,
+    emaPrice: average(baseline.prices.length > 0 ? baseline.prices : [point.price]),
+    emaConfidence: average(
+      baseline.confidences.length > 0 ? baseline.confidences : [point.confidence],
+    ),
+    bestBidPrice: point.bestBidPrice || point.price,
+    bestAskPrice: point.bestAskPrice || point.price,
+    publisherCount: point.publisherCount,
+    baselinePublisherCount:
+      baseline.publisherCounts.length > 0
+        ? Math.max(...baseline.publisherCounts, point.publisherCount)
+        : point.publisherCount,
+    baselineSpreadRatio:
+      baseline.spreadRatios.length > 0 ? median(baseline.spreadRatios) : spreadRatio,
+    updateAgeMs: 0,
+  } satisfies MarketInput;
+}
+
+function deriveHistoricalState(inputs: MarketInput[]) {
+  let timeline = DEFAULT_SEED_TIMELINE;
+  let currentState: MarketState | null = null;
+
+  for (const input of inputs) {
+    currentState = computeMarketState(input, timeline);
+    timeline = [...currentState.timeline, currentState.trustScore].slice(-12);
+  }
+
+  if (!currentState) {
+    currentState = computeMarketState(mockScenarioFrames[0], DEFAULT_SEED_TIMELINE);
+  }
+
+  return currentState;
+}
+
+async function fetchHistoricalPoint(
+  client: PythLazerClient,
+  assetKey: AssetKey,
+  timestampMs: number,
+) {
+  const requestBase: Omit<Parameters<PythLazerClient["getPrice"]>[0], "timestamp"> = {
+    priceFeedIds: [ASSET_CONFIG[assetKey].feedId],
+    properties: [
+      "price",
+      "confidence",
+      "bestBidPrice",
+      "bestAskPrice",
+      "publisherCount",
+      "exponent",
+    ],
+    formats: ["evm"],
+    parsed: true,
+    channel: "fixed_rate@200ms",
+  };
+
+  const attempts = [timestampMs, Math.floor(timestampMs / 1000)];
+  let lastError: Error | null = null;
+
+  for (const timestamp of attempts) {
+    try {
+      const snapshot = await client.getPrice({
+        ...requestBase,
+        timestamp,
+      });
+      const parsed = snapshot.parsed;
+      const feed = parsed?.priceFeeds?.[0];
+
+      if (!parsed || !feed || feed.exponent === undefined) {
+        throw new Error("Pyth Pro returned an incomplete historical payload");
+      }
+
+      const exponent = feed.exponent;
+      const sampledAtMs = Number.isFinite(Number(parsed.timestampUs))
+        ? Math.floor(Number(parsed.timestampUs) / 1000)
+        : timestampMs;
+
+      return {
+        sampledAtMs,
+        price: toDecimal(feed.price, exponent),
+        confidence: toDecimal(feed.confidence, exponent),
+        bestBidPrice: toDecimal(feed.bestBidPrice, exponent),
+        bestAskPrice: toDecimal(feed.bestAskPrice, exponent),
+        publisherCount: feed.publisherCount ?? 0,
+      } satisfies HistoricalPoint;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+    }
+  }
+
+  throw lastError ?? new Error("Unable to fetch historical point");
+}
+
+export async function getHistoricalMarketRecord(asset: string, timestampMs: number) {
+  const assetKey = (Object.keys(ASSET_CONFIG).includes(asset)
+    ? asset
+    : "BTC / USD") as AssetKey;
+
+  try {
+    const client = await getClient();
+    const metadata = await getSymbolMetadata(assetKey);
+    const timestamps = Array.from({ length: BASELINE_TARGET }, (_, index) =>
+      timestampMs - (BASELINE_TARGET - 1 - index) * HISTORICAL_SAMPLE_INTERVAL_MS,
+    );
+
+    const points = (
+      await Promise.all(
+        timestamps.map((timestamp) =>
+          fetchHistoricalPoint(client, assetKey, timestamp).catch(() => null),
+        ),
+      )
+    ).filter((point): point is HistoricalPoint => point !== null);
+
+    if (points.length === 0) {
+      throw new Error("No historical points were returned");
+    }
+
+    const baseline: BaselineState = {
+      prices: [],
+      confidences: [],
+      spreadRatios: [],
+      publisherCounts: [],
+    };
+
+    const inputs: MarketInput[] = [];
+
+    for (const point of points) {
+      const input = buildMarketInputFromPoint(assetKey, metadata, point, baseline);
+      inputs.push(input);
+
+      baseline.prices = pushWindow(baseline.prices, point.price);
+      baseline.confidences = pushWindow(baseline.confidences, point.confidence);
+      baseline.spreadRatios = pushWindow(
+        baseline.spreadRatios,
+        getSpreadRatio(point.bestBidPrice, point.bestAskPrice),
+      );
+      baseline.publisherCounts = pushWindow(baseline.publisherCounts, point.publisherCount);
+    }
+
+    const finalInput = inputs.at(-1) ?? inputs[0];
+    const finalPoint = points.at(-1) ?? points[0];
+    const state = deriveHistoricalState(inputs);
+
+    return {
+      input: finalInput,
+      state,
+      source: "pyth-pro" as const,
+      status: "live" as const,
+      baselineSamples: points.length,
+      baselineTarget: BASELINE_TARGET,
+      notice: `Historical Pyth Pro record reconstructed from ${points.length} samples ending at ${new Date(finalPoint.sampledAtMs).toLocaleString("en-US")}.`,
+      sampledAtMs: finalPoint.sampledAtMs,
+    } satisfies MarketRecord;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const fallback = getMockFallback(
+      assetKey,
+      `Historical record unavailable. ${formatFallbackNotice(message)}`,
+    );
+    const state = deriveHistoricalState([fallback.input]);
+
+    return {
+      input: fallback.input,
+      state,
+      source: fallback.source,
+      status: fallback.status,
+      baselineSamples: fallback.baselineSamples,
+      baselineTarget: fallback.baselineTarget,
+      notice: fallback.notice,
+      sampledAtMs: timestampMs,
+    } satisfies MarketRecord;
+  }
 }
 
 export async function getLiveMarketSnapshot(asset: string) {
