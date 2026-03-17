@@ -342,7 +342,8 @@ async function fetchHistoricalPoint(
     channel: selection.minChannel,
   };
 
-  const attempts = [timestampMs, Math.floor(timestampMs / 1000)];
+  const timestampUs = timestampMs * 1000;
+  const attempts = [timestampUs, timestampMs];
   let lastError: Error | null = null;
 
   for (const channel of getChannelCandidates(selection.minChannel)) {
