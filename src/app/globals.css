@@ -2983,6 +2983,7 @@ button.trialProofCard {
 .ticketInput:focus,
 .inlineActionButton:focus,
 .trialLaunchButton:focus,
+.trialShareButton:focus,
 .modeActionButton:focus,
 .assetSwitchButton:focus,
 .actionChip:focus,
@@ -3146,6 +3147,36 @@ button.trialProofCard {
   box-shadow:
     6px 6px 0 rgba(83, 15, 36, 0.72),
     0 20px 40px rgba(139, 24, 60, 0.25);
+}
+
+.trialShareButton {
+  width: 100%;
+  padding: 14px 18px;
+  border: 1px solid rgba(108, 224, 255, 0.28);
+  border-radius: 0;
+  background: linear-gradient(135deg, rgba(46, 67, 123, 0.92), rgba(73, 120, 255, 0.82));
+  color: white;
+  font-family: var(--font-mono), monospace;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  box-shadow:
+    6px 6px 0 rgba(16, 24, 58, 0.72),
+    0 20px 40px rgba(59, 130, 246, 0.22);
+}
+
+.verdictActionRow > .trialLaunchButton,
+.verdictActionRow > .trialShareButton {
+  flex: 1 1 220px;
+}
+
+.verdictShareFeedback {
+  margin: 10px 0 0;
+  color: rgba(213, 231, 255, 0.76);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .dialAura {
@@ -4580,6 +4611,7 @@ button.trialProofCard {
 }
 
 .trialLaunchButton,
+.trialShareButton,
 .proofStepButton,
 .inlineActionButton,
 .advancedToggleButton,
@@ -4596,6 +4628,7 @@ button.trialProofCard {
 }
 
 .trialLaunchButton:hover,
+.trialShareButton:hover,
 .proofStepButton:not(:disabled):hover,
 .inlineActionButton:hover,
 .advancedToggleButton:hover,

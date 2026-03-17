@@ -127,29 +127,62 @@ const rolePortraits: Record<
   Partial<Record<PortraitExpression | "default", string>>
 > = {
   Defense: {
-    default: "/courtroom/defense.png",
-    emphasis: "/courtroom/defense-emphasis.png",
-    shocked: "/courtroom/defense-shocked.png",
-    celebrate: "/courtroom/defense-celebrate.png",
-    defeated: "/courtroom/defense-defeated.png",
+    default: "/courtroom/defense.webp",
+    emphasis: "/courtroom/defense-emphasis.webp",
+    shocked: "/courtroom/defense-shocked.webp",
+    celebrate: "/courtroom/defense-celebrate.webp",
+    defeated: "/courtroom/defense-defeated.webp",
   },
   Judge: {
-    default: "/courtroom/judge.png",
-    speaking: "/courtroom/judge-speaking.png",
-    emphasis: "/courtroom/judge-speaking.png",
-    gavel: "/courtroom/judge-gavel.png",
+    default: "/courtroom/judge.webp",
+    speaking: "/courtroom/judge-speaking.webp",
+    emphasis: "/courtroom/judge-speaking.webp",
+    gavel: "/courtroom/judge-gavel.webp",
   },
   Prosecutor: {
-    default: "/courtroom/prosecutor.png",
-    emphasis: "/courtroom/prosecutor-emphasis.png",
-    shocked: "/courtroom/prosecutor-shocked.png",
-    celebrate: "/courtroom/prosecutor-celebrate.png",
-    defeated: "/courtroom/prosecutor-defeated.png",
+    default: "/courtroom/prosecutor.webp",
+    emphasis: "/courtroom/prosecutor-emphasis.webp",
+    shocked: "/courtroom/prosecutor-shocked.webp",
+    celebrate: "/courtroom/prosecutor-celebrate.webp",
+    defeated: "/courtroom/prosecutor-defeated.webp",
   },
 };
 
+const fallbackShareUrl = "https://market-witness-pyth-trial.vercel.app";
+const portraitPreloadSources = Array.from(
+  new Set(
+    Object.values(rolePortraits)
+      .flatMap((variants) => Object.values(variants))
+      .filter((value): value is string => Boolean(value)),
+  ),
+);
+
 function getPortraitSrc(role: CourtRole, expression: PortraitExpression) {
   return rolePortraits[role][expression] ?? rolePortraits[role].default ?? "";
+}
+
+function getTradeActionLabel(intent: TradeIntent) {
+  if (intent === "Long") return "buy";
+  if (intent === "Short") return "sell";
+  return "exit";
+}
+
+function getShareVerdictLabel(outcome: VerdictBoard["outcome"]) {
+  if (outcome === "Contested") return "Split Decision";
+  return outcome;
+}
+
+function getShareUrl() {
+  if (typeof window === "undefined") {
+    return fallbackShareUrl;
+  }
+
+  const { origin } = window.location;
+  if (!origin || origin.includes("localhost") || origin.includes("127.0.0.1")) {
+    return fallbackShareUrl;
+  }
+
+  return origin;
 }
 
 function outcomeWeight(outcome: VerdictBoard["outcome"]) {
@@ -1329,6 +1362,12 @@ function CourtPortrait({
           className="courtPortraitImage"
           src={getPortraitSrc(role, expression)}
           alt=""
+          width={768}
+          height={1024}
+          loading={variant === "judge" || state === "active" || state === "winner" ? "eager" : "lazy"}
+          fetchPriority={
+            variant === "judge" || state === "active" || state === "winner" ? "high" : "auto"
+          }
           decoding="async"
           draggable={false}
         />
@@ -1365,6 +1404,7 @@ export function TradeTrialExperience() {
   const [showAdvancedFiling, setShowAdvancedFiling] = useState(false);
   const [isPreparingTrial, setIsPreparingTrial] = useState(false);
   const [preparationError, setPreparationError] = useState<string | null>(null);
+  const [shareFeedback, setShareFeedback] = useState<string | null>(null);
   const [phase, setPhase] = useState<TrialPhase>("intake");
   const [trialRun, setTrialRun] = useState<TrialRun | null>(null);
   const [activeBeatIndex, setActiveBeatIndex] = useState(0);
@@ -1496,6 +1536,27 @@ export function TradeTrialExperience() {
     phase === "trial" && activeBeat
       ? activeBeat.proofs[selectedProofIndex] ?? activeBeat.proofs[0] ?? null
       : null;
+
+  useEffect(() => {
+    const preloaded = portraitPreloadSources.map((src) => {
+      const image = new window.Image();
+      image.decoding = "async";
+      image.src = src;
+      return image;
+    });
+
+    return () => {
+      for (const image of preloaded) {
+        image.src = "";
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (phase !== "verdict") {
+      setShareFeedback(null);
+    }
+  }, [phase]);
 
   useEffect(() => {
     if (phase !== "opening") {
@@ -2016,6 +2077,48 @@ export function TradeTrialExperience() {
     setTypedCharacters(0);
     setShowAdvancedFiling(false);
     setPreparationError(null);
+    setShareFeedback(null);
+  }
+
+  async function shareVerdict() {
+    if (!activeVerdict) {
+      return;
+    }
+
+    const shareUrl = getShareUrl();
+    const shareText = `I just put my ${asset} ${getTradeActionLabel(intent)} trade on trial in Market Witness, powered by Pyth. Verdict: ${getShareVerdictLabel(activeVerdict.outcome)}. Want to judge your own trade?`;
+    const shareTextWithUrl = `${shareText} ${shareUrl}`;
+    const shareIntentUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
+      shareText,
+    )}&url=${encodeURIComponent(shareUrl)}`;
+
+    try {
+      const popup = window.open(shareIntentUrl, "_blank", "noopener,noreferrer,width=720,height=640");
+
+      if (popup) {
+        setShareFeedback("Opened X share.");
+        return;
+      }
+
+      if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+        await navigator.share({
+          title: "Market Witness",
+          text: shareText,
+          url: shareUrl,
+        });
+        setShareFeedback("Shared.");
+        return;
+      }
+
+      throw new Error("Share popup blocked");
+    } catch {
+      try {
+        await navigator.clipboard.writeText(shareTextWithUrl);
+        setShareFeedback("Share text copied.");
+      } catch {
+        setShareFeedback("Unable to open sharing.");
+      }
+    }
   }
 
   if (phase === "intake") {
@@ -2737,12 +2840,20 @@ export function TradeTrialExperience() {
           <div className="verdictActionRow">
             <button
               type="button"
+              className="trialShareButton"
+              onClick={shareVerdict}
+            >
+              Share on X
+            </button>
+            <button
+              type="button"
               className="trialLaunchButton"
               onClick={resetCase}
             >
               File Another Trade
             </button>
           </div>
+          {shareFeedback ? <p className="verdictShareFeedback">{shareFeedback}</p> : null}
         </section>
       </div>
     </section>
