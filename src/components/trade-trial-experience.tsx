@@ -93,7 +93,6 @@ type TrialRun = {
   enteredAtLabel: string;
   beats: TrialBeat[];
   verdict: VerdictBoard;
-  dossier: TrialProofCard[];
 };
 
 type TrialLeg = {
@@ -752,118 +751,6 @@ function buildVerdictBoard(args: {
   } as const satisfies VerdictBoard;
 }
 
-function buildDossier(args: {
-  asset: string;
-  enteredAtLabel: string;
-  sourceLabel: string;
-  sourceNotice?: string;
-  record: TrialRecordLedger;
-  tradeAssessment: ReturnType<typeof assessTradeTicket>;
-  state: ReturnType<typeof assessTradeTicket> extends never ? never : {
-    trustScore: number;
-    riskLevel: string;
-    narrative: string;
-    recommendation: string;
-    evidence: EvidenceItem[];
-  };
-}) {
-  const { asset, enteredAtLabel, sourceLabel, sourceNotice, record, tradeAssessment, state } =
-    args;
-
-  const staticCards = [
-    buildProofCard({
-      prefix: "dossier",
-      label: "Filed Trade",
-      value: `${asset} ${tradeAssessment.intent}`,
-      delta: enteredAtLabel,
-      note: "The court reconstructs the case from the trader's submitted pair, action, time, size, leverage, and filed price.",
-      source: "Case Intake",
-      trend: "neutral",
-      emphasis: "This is the filing that went on trial.",
-    }),
-    buildProofCard({
-      prefix: "dossier",
-      label: "Ticket Score",
-      value: `${tradeAssessment.score}`,
-      delta: tradeAssessment.verdict,
-      note: tradeAssessment.summary,
-      source: "Ticket Reconstruction",
-      trend:
-        tradeAssessment.score >= 78
-          ? "supporting"
-          : tradeAssessment.score >= 55
-            ? "neutral"
-            : "damaging",
-      emphasis: "This is the admissibility score for the exact requested ticket.",
-    }),
-    buildProofCard({
-      prefix: "dossier",
-      label: "Pyth Evidence Record",
-      value: getEvidenceLabel(record),
-      delta: `${record.sampledAtLabel} · ${formatEvidenceWindow(record)}`,
-      note:
-        record.notice ??
-        (record.source === "pyth-pro"
-          ? "This case leg is reconstructed directly from a Pyth Pro record for the filed timestamp."
-          : "This case leg is running on demo fallback evidence because live Pyth Pro data was unavailable."),
-      source: record.source === "pyth-pro" ? "Pyth Pro / Lazer" : "Fallback Engine",
-      trend: record.source === "pyth-pro" ? "supporting" : "neutral",
-      emphasis: `${record.sectionLabel} evidence is on file for the court.`,
-    }),
-    buildProofCard({
-      prefix: "dossier",
-      label: "Market Trust",
-      value: `${state.trustScore}`,
-      delta: state.riskLevel,
-      note: state.narrative,
-      source: sourceLabel,
-      trend:
-        state.riskLevel === "Safe"
-          ? "supporting"
-          : state.riskLevel === "Caution"
-            ? "neutral"
-            : "damaging",
-      emphasis:
-        sourceNotice ?? "Derived from confidence, spread, publishers, session, and freshness.",
-    }),
-    buildProofCard({
-      prefix: "dossier",
-      label: "Recommended Action",
-      value: state.recommendation,
-      delta: tradeAssessment.recommendedAction,
-      note: "The court separates raw market quality from the actual ticket you tried to file.",
-      source: "Guard Policy",
-      trend:
-        tradeAssessment.score >= 78
-          ? "supporting"
-          : tradeAssessment.score >= 55
-            ? "neutral"
-            : "damaging",
-      emphasis: "This is the practical instruction after the ruling.",
-    }),
-  ];
-
-  return [
-    ...staticCards,
-    ...tradeAssessment.evidence.map((item, index) =>
-      buildProofFromEvidence({
-        prefix: `ticket-${index}`,
-        item,
-        source: "Ticket Reconstruction",
-        emphasis: "This proof targets the trader's exact requested execution.",
-      }),
-    ),
-    ...state.evidence.map((item, index) =>
-      buildProofFromEvidence({
-        prefix: `market-${index}`,
-        item,
-        source: sourceLabel,
-        emphasis: "This proof comes directly from the live Pyth market record.",
-      }),
-    ),
-  ];
-}
-
 function buildTrialBeats(args: {
   asset: string;
   enteredAtLabel: string;
@@ -1253,26 +1140,6 @@ function buildCaseBeats(
     }));
 }
 
-function buildCaseDossier(
-  leg: TrialLeg,
-  sectionKey: string,
-  sectionLabel: string,
-) {
-  return buildDossier({
-    asset: leg.asset,
-    enteredAtLabel: leg.enteredAtLabel,
-    sourceLabel: leg.sourceLabel,
-    sourceNotice: leg.sourceNotice,
-    record: leg.record,
-    tradeAssessment: leg.tradeAssessment,
-    state: leg.state,
-  }).map((proof) => ({
-    ...proof,
-    id: `${sectionKey}-${proof.id}`,
-    label: `${sectionLabel} ${proof.label}`,
-  }));
-}
-
 function buildCombinedVerdict(args: {
   asset: string;
   entry: TrialLeg;
@@ -1383,11 +1250,17 @@ function getRoleTag(role: CourtRole) {
 }
 
 function getVerdictSpeech(verdict: VerdictBoard) {
+  const topReason = verdict.reasons[0];
+
+  if (topReason) {
+    return `${verdict.summary} ${topReason} ${verdict.guidance}`;
+  }
+
   return `${verdict.summary} ${verdict.guidance}`;
 }
 
 const openingSpeech =
-  "Order. The court will hear this trade as filed. Defense and prosecution will examine the tape one statement at a time before the ruling is delivered.";
+  "Order. The court will review this trade. The prosecution will challenge the tape, the defense will answer, and then the ruling will be delivered.";
 
 async function fetchHistoricalRecord(selection: MarketSelection, timestamp: string) {
   const parsedTimestamp = new Date(timestamp).getTime();
@@ -1456,8 +1329,7 @@ function CourtPortrait({
           className="courtPortraitImage"
           src={getPortraitSrc(role, expression)}
           alt=""
-          loading="eager"
-          decoding="sync"
+          decoding="async"
           draggable={false}
         />
       </div>
@@ -1513,9 +1385,24 @@ export function TradeTrialExperience() {
   } = useMarketStream({
     selection: selectedMarket,
     provider: apiMarketProvider,
+    enabled: phase === "intake",
   });
 
   useEffect(() => {
+    if (!showSymbolResults) {
+      setSymbolSearchError(null);
+      setSymbolResults(FEATURED_PYTH_SYMBOLS);
+      setIsSearchingSymbols(false);
+      return;
+    }
+
+    if (assetSearchQuery.trim().length < 2) {
+      setSymbolSearchError(null);
+      setSymbolResults(FEATURED_PYTH_SYMBOLS);
+      setIsSearchingSymbols(false);
+      return;
+    }
+
     let cancelled = false;
 
     const run = async () => {
@@ -1549,7 +1436,7 @@ export function TradeTrialExperience() {
       cancelled = true;
       window.clearTimeout(timeout);
     };
-  }, [assetSearchQuery]);
+  }, [assetSearchQuery, showSymbolResults]);
 
   useEffect(() => {
     setEntryPriceTouched(false);
@@ -1976,7 +1863,16 @@ export function TradeTrialExperience() {
     setPreparationError(null);
 
     try {
-      const entryRecord = await fetchHistoricalRecord(selectedMarket, enteredAt);
+      const entryRecordPromise = fetchHistoricalRecord(selectedMarket, enteredAt);
+      const closeRecordPromise =
+        !stillOpen && closedAt
+          ? fetchHistoricalRecord(selectedMarket, closedAt)
+          : null;
+      const [entryRecord, closeRecord] = await Promise.all([
+        entryRecordPromise,
+        closeRecordPromise,
+      ]);
+
       const entryLeg: TrialLeg = {
         asset: entryRecord.input.asset,
         enteredAtLabel,
@@ -2011,8 +1907,7 @@ export function TradeTrialExperience() {
       let followUpLabel: string | undefined;
       let followUpMode: "close" | "current" | undefined;
 
-      if (!stillOpen && closedAt) {
-        const closeRecord = await fetchHistoricalRecord(selectedMarket, closedAt);
+      if (!stillOpen && closedAt && closeRecord) {
         followUpLeg = {
           asset: closeRecord.input.asset,
           enteredAtLabel: closedAtLabel,
@@ -2094,16 +1989,6 @@ export function TradeTrialExperience() {
           followUpLabel,
           followUpMode,
         }),
-        dossier: [
-          ...buildCaseDossier(entryLeg, "entry", "Entry"),
-          ...(followUpLeg
-            ? buildCaseDossier(
-                followUpLeg,
-                followUpMode === "current" ? "current" : "close",
-                followUpLabel ?? "Close",
-              )
-            : []),
-        ],
       } satisfies TrialRun;
 
       setTrialRun(nextRun);

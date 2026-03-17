@@ -18,6 +18,7 @@ type UseMarketStreamOptions = {
   provider: MarketDataProvider;
   seedTimeline?: number[];
   intervalMs?: number;
+  enabled?: boolean;
 };
 
 export function useMarketStream({
@@ -25,6 +26,7 @@ export function useMarketStream({
   provider,
   seedTimeline = DEFAULT_SEED_TIMELINE,
   intervalMs,
+  enabled = true,
 }: UseMarketStreamOptions) {
   const [frameIndex, setFrameIndex] = useState(0);
   const [input, setInput] = useState<MarketInput | null>(null);
@@ -37,15 +39,9 @@ export function useMarketStream({
   const [channel, setChannel] = useState<string | undefined>();
 
   useEffect(() => {
-    setFrameIndex(0);
-    setInput(null);
-    setState(null);
-    setSource("mock");
-    setStatus("warming");
-    setNotice(undefined);
-    setBaselineSamples(undefined);
-    setBaselineTarget(undefined);
-    setChannel(undefined);
+    if (!enabled) {
+      return;
+    }
 
     const unsubscribe = provider.subscribe(
       { selection, intervalMs },
@@ -79,7 +75,7 @@ export function useMarketStream({
     );
 
     return unsubscribe;
-  }, [intervalMs, provider, seedTimeline, selection]);
+  }, [enabled, intervalMs, provider, seedTimeline, selection]);
 
   return {
     frameIndex,
